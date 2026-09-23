@@ -3,7 +3,7 @@
 const EXAMPLE_QUERIES = [
   "nfldraftcountdown",
   "tcf national bank",
-  "gwen stefani's clothing line",
+  "wells fargo.",
   "lexmark x63 printer fax",
   "species of trees",
 ];
@@ -16,10 +16,10 @@ const examplesEl = document.getElementById("examples");
 const resultsCard = document.getElementById("results-card");
 const resultsList = document.getElementById("results-list");
 const resultsMeta = document.getElementById("results-meta");
-const compareCard = document.getElementById("compare-card");
+const compareSection = document.getElementById("compare-section");
 const compareGrid = document.getElementById("compare-grid");
-const infoGrid = document.getElementById("info-grid");
-const offlineBadge = document.getElementById("offline-badge");
+const heroMeta = document.getElementById("hero-meta");
+const evidenceGrid = document.getElementById("evidence-grid");
 
 function escapeHtml(str) {
   const div = document.createElement("div");
@@ -62,22 +62,27 @@ async function fetchJson(url, options) {
   return body;
 }
 
+function fmtScore(n) {
+  return typeof n === "number" ? n.toFixed(3) : "—";
+}
+
 function renderMapResults(data) {
   resultsList.innerHTML = "";
-  for (const r of data.results) {
-    const row = document.createElement("div");
-    row.className = "result-row";
-    row.innerHTML = `
-      <div class="rank-badge">${r.rank}</div>
-      <div class="result-main">
-        <div class="head-query">${escapeHtml(r.head_query)}</div>
-        <div class="scores">lexical ${r.lexical_score.toFixed(3)} · semantic ${r.semantic_score.toFixed(3)} · support ${r.support_score.toFixed(3)}</div>
-      </div>
-      <div class="final-score">${r.final_score.toFixed(3)}</div>
+  data.results.forEach((r, i) => {
+    const li = document.createElement("li");
+    li.className = "result-row";
+    li.style.animationDelay = `${i * 45}ms`;
+    li.innerHTML = `
+      <span class="result-index">${String(r.rank).padStart(2, "0")}</span>
+      <span class="result-main">
+        <span class="head-query">${escapeHtml(r.head_query)}</span>
+        <div class="result-sub">semantic ${fmtScore(r.semantic_score)} · lexical ${fmtScore(r.lexical_score)} · support ${fmtScore(r.support_score)}</div>
+      </span>
+      <span class="result-score">${fmtScore(r.final_score)}</span>
     `;
-    resultsList.appendChild(row);
-  }
-  resultsMeta.textContent = `Inference latency: ${data.latency_ms.toFixed(1)} ms · model: ${data.model.embedding_model} · alpha ${data.model.alpha} · beta ${data.model.beta}`;
+    resultsList.appendChild(li);
+  });
+  resultsMeta.textContent = `Inference ${data.latency_ms.toFixed(1)} ms · ${data.model.embedding_model.split("/").pop()} · α ${data.model.alpha} · β ${data.model.beta}`;
   resultsCard.classList.remove("hidden");
 }
 
@@ -87,30 +92,30 @@ function renderCompareColumn(title, block) {
   const items = block.results
     .map(
       (r) =>
-        `<div class="compare-item"><span class="cq">${r.rank}. ${escapeHtml(r.head_query)}</span><span class="cs">${r.score.toFixed(3)}</span></div>`
+        `<div class="compare-item"><span><span class="ci-rank">${r.rank}</span>${escapeHtml(r.head_query)}</span><span class="ci-score">${fmtScore(r.score)}</span></div>`
     )
     .join("");
   col.innerHTML = `
     <h3>${title}</h3>
-    <div class="system-latency">${block.latency_ms.toFixed(1)} ms</div>
-    ${items || '<div class="compare-item cs">no candidates</div>'}
+    <div class="col-latency">${block.latency_ms.toFixed(1)} ms</div>
+    ${items || '<div class="compare-item"><span class="ci-score">no candidates</span></div>'}
   `;
   return col;
 }
 
 function renderCompare(data) {
   compareGrid.innerHTML = "";
-  compareGrid.appendChild(renderCompareColumn("Lexical Baseline", data.lexical_baseline));
-  compareGrid.appendChild(renderCompareColumn("Semantic Only", data.semantic_only));
-  compareGrid.appendChild(renderCompareColumn("Final System (Level 5)", data.final_system));
-  compareCard.classList.remove("hidden");
+  compareGrid.appendChild(renderCompareColumn("Lexical baseline", data.lexical_baseline));
+  compareGrid.appendChild(renderCompareColumn("Semantic only", data.semantic_only));
+  compareGrid.appendChild(renderCompareColumn("Final system", data.final_system));
+  compareSection.classList.remove("hidden");
 }
 
 async function runQuery(query) {
   setStatus("");
   mapBtn.disabled = true;
   const original = mapBtn.textContent;
-  mapBtn.innerHTML = '<span class="spinner"></span>Mapping…';
+  mapBtn.textContent = "Mapping…";
   try {
     const [mapData, compareData] = await Promise.all([
       fetchJson("/api/map", {
@@ -129,7 +134,7 @@ async function runQuery(query) {
   } catch (err) {
     setStatus(err.message || "Something went wrong. Please try again.", true);
     resultsCard.classList.add("hidden");
-    compareCard.classList.add("hidden");
+    compareSection.classList.add("hidden");
   } finally {
     mapBtn.disabled = false;
     mapBtn.textContent = original;
@@ -140,27 +145,43 @@ form.addEventListener("submit", (e) => {
   e.preventDefault();
   const query = input.value.trim();
   if (!query) {
-    setStatus("Please enter a query before mapping.", true);
+    setStatus("Enter a query before mapping.", true);
     return;
   }
   runQuery(query);
 });
 
+function renderHeroMeta(meta) {
+  const rows = heroMeta.querySelectorAll(".hm-value");
+  rows[0].textContent = meta.head_index_size.toLocaleString();
+  rows[1].textContent = meta.held_out_test_size.toLocaleString();
+  rows[2].textContent = meta.final_mrr.toFixed(3);
+}
+
+function evidenceItem(label, value, emph) {
+  return `<div class="evidence-item${emph ? " emph" : ""}"><div class="ev-label">${label}</div><div class="ev-value">${value}</div></div>`;
+}
+
+function renderEvidence(meta) {
+  evidenceGrid.innerHTML = [
+    evidenceItem("Baseline MRR", meta.baseline_mrr.toFixed(4)),
+    evidenceItem("Final MRR", meta.final_mrr.toFixed(4), true),
+    evidenceItem("Relative lift", `+${meta.relative_improvement_pct.toFixed(1)}%`, true),
+    evidenceItem("Held-out queries", meta.held_out_test_size.toLocaleString()),
+    evidenceItem(
+      "Local P95 latency",
+      meta.p95_local_inference_benchmark_ms ? `${meta.p95_local_inference_benchmark_ms.toFixed(1)} ms` : "n/a"
+    ),
+  ].join("");
+}
+
 async function loadMetadata() {
   try {
     const meta = await fetchJson("/api/metadata");
-    offlineBadge.classList.remove("hidden");
-    infoGrid.innerHTML = `
-      <div class="info-item"><div class="label">Frozen model</div><div class="value">${escapeHtml(meta.frozen_model.split("/").pop())}</div></div>
-      <div class="info-item"><div class="label">Candidate index</div><div class="value">${meta.head_index_size.toLocaleString()} head queries</div></div>
-      <div class="info-item"><div class="label">Held-out evaluation</div><div class="value">${meta.held_out_test_size.toLocaleString()} tail queries</div></div>
-      <div class="info-item"><div class="label">Baseline MRR</div><div class="value">${meta.baseline_mrr.toFixed(4)}</div></div>
-      <div class="info-item"><div class="label">Final MRR</div><div class="value">${meta.final_mrr.toFixed(4)}</div></div>
-      <div class="info-item"><div class="label">Improvement</div><div class="value">+${meta.relative_improvement_pct.toFixed(1)}%</div></div>
-      <div class="info-item"><div class="label">Local P95 latency</div><div class="value">${meta.p95_local_inference_benchmark_ms ? meta.p95_local_inference_benchmark_ms.toFixed(1) + " ms" : "n/a"}</div></div>
-    `;
+    renderHeroMeta(meta);
+    renderEvidence(meta);
   } catch (err) {
-    infoGrid.innerHTML = `<div class="status-line error">Backend not ready: ${escapeHtml(err.message)}</div>`;
+    evidenceGrid.innerHTML = `<div class="evidence-item"><div class="ev-label">Status</div><div class="ev-value" style="font-size:16px;color:var(--ink-dim)">Backend not ready</div></div>`;
   }
 }
 
@@ -175,6 +196,35 @@ async function checkHealth() {
   }
 }
 
+function initReveal() {
+  const targets = document.querySelectorAll(".reveal");
+  if (!("IntersectionObserver" in window)) {
+    return; // .reveal is visible by default -- no JS needed for content to show
+  }
+  // Opt into the hidden pre-reveal state only once JS + observers are
+  // confirmed available, so a failure anywhere upstream never leaves
+  // content permanently invisible.
+  targets.forEach((t) => t.classList.add("pending"));
+  const io = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("in-view");
+          io.unobserve(entry.target);
+        }
+      }
+    },
+    { threshold: 0.12 }
+  );
+  targets.forEach((t) => io.observe(t));
+  // Safety net: force-reveal anything still pending after 2.5s (covers
+  // edge cases like instant anchor jumps or unusual viewport states).
+  setTimeout(() => {
+    document.querySelectorAll(".reveal.pending:not(.in-view)").forEach((t) => t.classList.add("in-view"));
+  }, 2500);
+}
+
 renderExamples();
+initReveal();
 checkHealth();
 loadMetadata();
