@@ -33,8 +33,10 @@ artifact/command that produces it. Not resume language.
    paired bootstrap (Section 12 gate — passed).
    (`artifacts/splits/split_summary.json`)
 
-7. Baseline (original Jaccard lexical method, faithfully reproduced)
-   held-out tail MRR = **0.1474**. (`artifacts/final_metrics.json::baseline_tail_metric`)
+7. Baseline (original Jaccard similarity function, faithfully preserved and
+   adapted from the original pairwise classifier into full-index retrieval
+   ranking) held-out tail MRR = **0.1474**.
+   (`artifacts/final_metrics.json::baseline_tail_metric`)
 
 8. Final system (validation-selected Level 5: lexical+semantic fusion +
    train-only support prior) held-out tail MRR = **0.2661**.
@@ -61,10 +63,10 @@ artifact/command that produces it. Not resume language.
     rises with confidence (top quartile mean MRR 0.332).
     (`artifacts/final_metrics.json::coverage`, `artifacts/coverage_analysis.json`)
 
-14. Deployed-pipeline latency (Level 5, the validation-selected system): P50
-    = **18.9ms**, P95 = **21.8ms**, P99 = **25.1ms**, cold start = **13.2s**,
-    measured with 20 warmup + 300 measured requests at concurrency=1 on a
-    fixed query set. (`artifacts/latency_benchmark.json`)
+14. Inference-path latency, Level 5 (the validation-selected system), run
+    locally: P50 = **18.9ms**, P95 = **21.8ms**, P99 = **25.1ms**, cold start
+    = **13.2s**, measured with 20 warmup + 300 measured requests at
+    concurrency=1 on a fixed query set. (`artifacts/latency_benchmark.json`)
 
 15. A validation-tested but rejected cross-encoder reranking stage (Level 4)
     was both lower-quality (test MRR 0.1889 vs. 0.1945 for fusion alone) AND

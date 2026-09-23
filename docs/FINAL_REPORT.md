@@ -110,10 +110,13 @@ structure of the eligible tail-query population.
 
 ## 15. Original baselines
 
-Jaccard lexical similarity (`separator.py`) faithfully reproduced as a
-full-index retrieval ranker: test MRR = 0.1474. The claimed 78% SVM-ensemble
-accuracy could not be verified (no result artifact exists, entity-linking
-API dead, script never wired to a present data file).
+Original Jaccard similarity (`separator.py`) faithfully preserved as a
+scoring function and adapted to full-index retrieval ranking (the original
+was a pairwise binary classifier; this project reuses the identical
+similarity formula to rank against all 12,261 head candidates): test MRR =
+0.1474. The claimed 78% SVM-ensemble accuracy could not be verified (no
+result artifact exists, entity-linking API dead, script never wired to a
+present data file).
 
 ## 16. Model comparison ladder
 
@@ -127,10 +130,14 @@ API dead, script never wired to a present data file).
 
 ## 17. Baseline head quality
 
-Not independently measurable (no raw head-only click logs survive). Used
-instead: a defined reference ceiling — head query matched against its own
-head-query index (near-certain self-identity retrieval), MRR = 0.9981. See
-§18 caveat.
+**Not independently measurable as a production metric** — no raw head-only
+click logs survive to compute true production head-query search quality.
+Used instead, and labeled precisely as such throughout this report: a
+defined **head-query self-retrieval reference ceiling** — a head query
+matched against the same head-query index it was drawn from (near-certain
+self-identity retrieval), MRR = 0.9981. Every gap figure in this report
+(§19, §23, §24) is computed against this explicit reference ceiling, not
+against an independently measured production number.
 
 ## 18. Baseline tail quality
 
@@ -197,10 +204,13 @@ in-production user-behavior change is made anywhere (Section 35 compliance).
 
 ## 28. Performance
 
-Deployed pipeline (Level 5): P50=18.9ms, P95=21.8ms, P99=25.1ms, cold
-start=13.2s, error rate 0.0%. Protocol: 20 warmup + 300 measured requests,
-concurrency=1, fixed query cycling, CPU (Apple Silicon, `device="cpu"`).
-`artifacts/latency_benchmark.json`.
+Inference-path benchmark (Level 5, run locally, not yet deployed at the time
+of this measurement): P50=18.9ms, P95=21.8ms, P99=25.1ms, cold start=13.2s,
+error rate 0.0%. Protocol: 20 warmup + 300 measured requests, concurrency=1,
+fixed query cycling, CPU (Apple Silicon, `device="cpu"`).
+`artifacts/latency_benchmark.json`. See §"API-Level Latency" below for the
+separate serving-layer (FastAPI) round-trip benchmark added in the serving
+phase of this project.
 
 ## 29. Statistical stability
 
@@ -300,8 +310,8 @@ Full cited list: `docs/PROJECT_EVIDENCE.md`.
 
 | Capability | Status | Evidence |
 |---|---|---|
-| Query-log analysis | DIRECTLY DEMONSTRATED | `scripts/audit_data.py`, `artifacts/data_audit.json` |
-| Deriving insights from query logs | DIRECTLY DEMONSTRATED | `docs/SEARCH_QUALITY_DIAGNOSIS.md` |
+| Query-log analysis | PARTIALLY DEMONSTRATED | Analyzes query-log-derived tail→head relevance data and inherited head/tail artifacts (`scripts/audit_data.py`, `artifacts/data_audit.json`); raw query-event logs, timestamps, users, and impressions are unavailable. |
+| Deriving insights from query logs | PARTIALLY DEMONSTRATED | Insights (`docs/SEARCH_QUALITY_DIAGNOSIS.md`) are derived from already-derived tail→head relevance pairs, not raw query-event logs — same underlying data-availability limit as above. |
 | Identifying search-quality improvement opportunities | DIRECTLY DEMONSTRATED | §11 above; led directly to the Level 5 intervention |
 | Data sparsity | DIRECTLY DEMONSTRATED | `docs/PROJECT_EVIDENCE.md` items 3-4, `artifacts/sparsity_correlation.json` |
 | Head-query analysis | DIRECTLY DEMONSTRATED | `docs/HEAD_TAIL_METHODOLOGY.md`, head self-retrieval ceiling |
@@ -311,14 +321,14 @@ Full cited list: `docs/PROJECT_EVIDENCE.md`.
 | Search-quality segmentation by frequency/support | DIRECTLY DEMONSTRATED | head vs. tail MRR comparison, gap analysis |
 | Semantic query understanding | DIRECTLY DEMONSTRATED | Level 2-5 sentence-transformer bi-encoder mapper |
 | Sparse-query intervention | DIRECTLY DEMONSTRATED | Level 5 system, +80.5% relative MRR on held-out tail |
-| Query mapping / reformulation | PARTIALLY DEMONSTRATED | query-to-query mapping fully demonstrated; session-level reformulation (query sequences) not demonstrable, no session data |
-| Head-tail search-quality gap | DIRECTLY DEMONSTRATED | §19, §23, §24 (with the ceiling-definition caveat disclosed) |
+| Query mapping | DIRECTLY DEMONSTRATED | the full tail-query → ranked head-query system, §16, §22 |
+| Reformulation analysis | NOT DEMONSTRATED / BLOCKED BY DATA | no session/timestamp sequence exists to identify consecutive same-need queries |
+| Head-tail search-quality gap | PARTIALLY DEMONSTRATED | Tail-quality gap is quantified against an explicitly defined head-query self-retrieval reference ceiling (§17, §19, §23, §24); true production head-query quality cannot be measured because raw head-query interaction logs are unavailable. The 13.95% gap-reduction calculation is retained and mathematically valid against the stated ceiling — it is not an independently measured production head-vs-tail quality reduction. |
 | Measurable search-quality improvement | DIRECTLY DEMONSTRATED | paired bootstrap CI excluding zero, §22 |
 | Intervention coverage | DIRECTLY DEMONSTRATED | `artifacts/coverage_analysis.json`, §25 |
 | Abstention/confidence handling | PARTIALLY DEMONSTRATED | confidence signal validated (quality rises with confidence) but no abstention policy deployed in the primary system |
 | First-click-position analysis | NOT DEMONSTRATED | no rank data survives per-row; documented limitation |
 | No-click analysis | NOT DEMONSTRATED | no impression lists exist |
-| Reformulation analysis | NOT DEMONSTRATED | no session/timestamp data |
 | Abandonment analysis | NOT DEMONSTRATED | no session/timestamp data |
 | Offline click/relevance recovery | PARTIALLY DEMONSTRATED | offline query-mapping recovery fully demonstrated; document/click-level recovery (Task B) not built, Task A chosen as primary instead |
 | Production-aware latency | DIRECTLY DEMONSTRATED | exact-protocol benchmark, §28 |

@@ -59,8 +59,9 @@ brief). nDCG was not used — there is no graded relevance signal in this
 dataset, only binary.
 
 ## 10. Original baselines
-`separator.py`'s Jaccard token-overlap similarity was faithfully reproduced
-as a full-index retrieval ranker (`src/mapping.py::LexicalMapper`) — this is
+`separator.py`'s Jaccard token-overlap similarity function was faithfully
+preserved and adapted from the original pairwise classifier formulation into
+full-index retrieval ranking (`src/mapping.py::LexicalMapper`) — this is
 Level 0/1 in the ladder below. The original SVM ensemble's 78% accuracy
 claim could not be verified or reproduced (no result artifact exists,
 the entity-linking feature's external API is dead, and the script was never
@@ -74,7 +75,7 @@ consolidated in `artifacts/final_metrics.json`.
 
 | Level | Description | Val MRR | Test MRR |
 |---|---|---|---|
-| 0/1 | Original Jaccard lexical, reproduced, full-index retrieval | 0.1447 | 0.1474 |
+| 0/1 | Original Jaccard similarity, preserved and adapted to full-index retrieval | 0.1447 | 0.1474 |
 | 2 | Semantic bi-encoder only (`multi-qa-MiniLM-L6-cos-v1`) | 0.1894 | 0.1897 |
 | 3 | Lexical + semantic fusion (α=0.9) | 0.1933 | 0.1945 |
 | 4 | Fusion + cross-encoder rerank (`ms-marco-MiniLM-L-6-v2`, depth=10) | 0.1878 | 0.1889 |
@@ -175,7 +176,8 @@ Task B) was selected as primary (see §7 above and
 `docs/HEAD_TAIL_METHODOLOGY.md`).
 
 ## 21. Latency
-Deployed pipeline (Level 5, no reranker): **P50 18.9ms / P95 21.8ms / P99
+Inference-path benchmark, frozen final system (Level 5, no reranker), run
+locally (not yet deployed — see `docs/DEPLOYMENT.md`): **P50 18.9ms / P95 21.8ms / P99
 25.1ms**, cold start 13.2s (model+index load, measured once, excluded from
 the percentiles). Protocol: 20 warmup + 300 measured requests, concurrency=1,
 cycling a fixed 40-query set from the test split
