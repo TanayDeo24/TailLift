@@ -1,0 +1,125 @@
+{
+  "baseline_level": "level0_1_lexical",
+  "final_level": "level5_support_prior",
+  "baseline_wins_final_loses": {
+    "total_count_in_test_set": 1262,
+    "pct_of_test_set": 7.21,
+    "sample": [
+      {
+        "tail_query": "fullfiggas",
+        "true_positive_heads": [
+          "yahoo360"
+        ],
+        "baseline_mrr": 0.00023849272597185786,
+        "final_mrr": 0.00012351778656126481
+      },
+      {
+        "tail_query": "species of trees",
+        "true_positive_heads": [
+          "palm trees"
+        ],
+        "baseline_mrr": 0.5,
+        "final_mrr": 0.2
+      },
+      {
+        "tail_query": "philly fakeout",
+        "true_positive_heads": [
+          "sex.com"
+        ],
+        "baseline_mrr": 0.0012594458438287153,
+        "final_mrr": 0.0007782101167315176
+      },
+      {
+        "tail_query": "www.clubaquatica.com",
+        "true_positive_heads": [
+          "www.limewire.com"
+        ],
+        "baseline_mrr": 0.027777777777777776,
+        "final_mrr": 0.002564102564102564
+      }
+    ]
+  },
+  "final_wins_baseline_loses": {
+    "total_count_in_test_set": 14233,
+    "pct_of_test_set": 81.34,
+    "sample": [
+      {
+        "tail_query": "wins1010",
+        "true_positive_heads": [
+          "flight tracker"
+        ],
+        "baseline_mrr": 9.0711175616836e-05,
+        "final_mrr": 0.0007818608287724785
+      },
+      {
+        "tail_query": "lavar arrington rumors",
+        "true_positive_heads": [
+          "2006 nfl mock draft",
+          "mets",
+          "nfl draft"
+        ],
+        "baseline_mrr": 0.000471253534401508,
+        "final_mrr": 0.011627906976744186
+      },
+      {
+        "tail_query": "lexmark x63 printer fax",
+        "true_positive_heads": [
+          "lexmark"
+        ],
+        "baseline_mrr": 0.3333333333333333,
+        "final_mrr": 1.0
+      },
+      {
+        "tail_query": "nfldraftcountdown",
+        "true_positive_heads": [
+          "nfl draft"
+        ],
+        "baseline_mrr": 0.00034423407917383823,
+        "final_mrr": 0.25
+      }
+    ]
+  },
+  "both_fail": {
+    "total_count_in_test_set": 0,
+    "pct_of_test_set": 0.0,
+    "sample": []
+  },
+  "both_succeed_at_1": {
+    "total_count_in_test_set": 1820,
+    "pct_of_test_set": 10.4,
+    "sample": [
+      {
+        "tail_query": "wells fargo.",
+        "true_positive_heads": [
+          "wells fargo"
+        ],
+        "baseline_mrr": 1.0,
+        "final_mrr": 1.0
+      },
+      {
+        "tail_query": "gwen stefani's clothing line",
+        "true_positive_heads": [
+          "gwen stefani"
+        ],
+        "baseline_mrr": 1.0,
+        "final_mrr": 1.0
+      },
+      {
+        "tail_query": "tcf national bank",
+        "true_positive_heads": [
+          "tcf bank"
+        ],
+        "baseline_mrr": 1.0,
+        "final_mrr": 1.0
+      },
+      {
+        "tail_query": "lyrics to have you ever",
+        "true_positive_heads": [
+          "lyrics"
+        ],
+        "baseline_mrr": 1.0,
+        "final_mrr": 1.0
+      }
+    ]
+  }
+}

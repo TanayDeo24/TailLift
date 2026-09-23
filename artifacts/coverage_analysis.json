@@ -1,0 +1,76 @@
+{
+  "note": "Secondary analysis only. The PRIMARY frozen test result (artifacts/final_metrics.json) applies NO abstention threshold (100% forced coverage). This file characterizes what a confidence-based abstention policy would trade off, for future use, without altering the primary frozen number.",
+  "final_level_analyzed": "level5_support_prior",
+  "confidence_signal": "top-1 lexical+semantic fused score (pre-rerank, pre-prior)",
+  "quality_by_confidence_quartile": [
+    {
+      "confidence_quartile": 1,
+      "n": 4215,
+      "confidence_range": [
+        0.8999999761581421,
+        0.9499798393249512
+      ],
+      "mean_mrr": 0.1363653044584813,
+      "mean_hit@5": 0.1712930011862396
+    },
+    {
+      "confidence_quartile": 2,
+      "n": 4497,
+      "confidence_range": [
+        0.9499999761581421,
+        0.99999920129776
+      ],
+      "mean_mrr": 0.25936251018287493,
+      "mean_hit@5": 0.3337780742717367
+    },
+    {
+      "confidence_quartile": 3,
+      "n": 0,
+      "confidence_range": null,
+      "mean_mrr": null,
+      "mean_hit@5": null
+    },
+    {
+      "confidence_quartile": 4,
+      "n": 8787,
+      "confidence_range": [
+        0.9999999761581421,
+        0.9999999761581421
+      ],
+      "mean_mrr": 0.3318188689761872,
+      "mean_hit@5": 0.4205075679981791
+    }
+  ],
+  "coverage_vs_quality_by_threshold": [
+    {
+      "min_confidence_threshold": 0.0,
+      "coverage_pct": 100.0,
+      "mean_mrr_if_served": 0.2661195135881275,
+      "mean_hit@5_if_served": 0.3381907537573576
+    },
+    {
+      "min_confidence_threshold": 0.3,
+      "coverage_pct": 100.0,
+      "mean_mrr_if_served": 0.2661195135881275,
+      "mean_hit@5_if_served": 0.3381907537573576
+    },
+    {
+      "min_confidence_threshold": 0.5,
+      "coverage_pct": 100.0,
+      "mean_mrr_if_served": 0.2661195135881275,
+      "mean_hit@5_if_served": 0.3381907537573576
+    },
+    {
+      "min_confidence_threshold": 0.7,
+      "coverage_pct": 100.0,
+      "mean_mrr_if_served": 0.2661195135881275,
+      "mean_hit@5_if_served": 0.3381907537573576
+    },
+    {
+      "min_confidence_threshold": 0.9,
+      "coverage_pct": 82.22755586033487,
+      "mean_mrr_if_served": 0.29846985502148377,
+      "mean_hit@5_if_served": 0.37973451942456043
+    }
+  ]
+}

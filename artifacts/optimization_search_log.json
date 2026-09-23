@@ -1,0 +1,91 @@
+[
+  {
+    "model": "sentence-transformers/all-MiniLM-L6-v2",
+    "alpha": 0.3,
+    "semantic_mrr": 0.17383314045108103,
+    "fusion_mrr": 0.17491344349295362,
+    "fusion_recall@5": 0.2192888888888889,
+    "elapsed_s": 23.5
+  },
+  {
+    "model": "sentence-transformers/all-MiniLM-L6-v2",
+    "alpha": 0.5,
+    "semantic_mrr": 0.17383314045108103,
+    "fusion_mrr": 0.17879186569599528,
+    "fusion_recall@5": 0.2257333333333333,
+    "elapsed_s": 37.2
+  },
+  {
+    "model": "sentence-transformers/all-MiniLM-L6-v2",
+    "alpha": 0.7,
+    "semantic_mrr": 0.17383314045108103,
+    "fusion_mrr": 0.1824276102996569,
+    "fusion_recall@5": 0.23434444444444444,
+    "elapsed_s": 50.9
+  },
+  {
+    "model": "sentence-transformers/all-MiniLM-L6-v2",
+    "alpha": 0.9,
+    "semantic_mrr": 0.17383314045108103,
+    "fusion_mrr": 0.18155004785168058,
+    "fusion_recall@5": 0.24298333333333336,
+    "elapsed_s": 64.7
+  },
+  {
+    "model": "sentence-transformers/multi-qa-MiniLM-L6-cos-v1",
+    "alpha": 0.3,
+    "semantic_mrr": 0.1880950395112167,
+    "fusion_mrr": 0.17441430534625557,
+    "fusion_recall@5": 0.21784444444444442,
+    "elapsed_s": 26.9
+  },
+  {
+    "model": "sentence-transformers/multi-qa-MiniLM-L6-cos-v1",
+    "alpha": 0.5,
+    "semantic_mrr": 0.1880950395112167,
+    "fusion_mrr": 0.17896492615128182,
+    "fusion_recall@5": 0.2287611111111111,
+    "elapsed_s": 40.7
+  },
+  {
+    "model": "sentence-transformers/multi-qa-MiniLM-L6-cos-v1",
+    "alpha": 0.7,
+    "semantic_mrr": 0.1880950395112167,
+    "fusion_mrr": 0.1864236627139972,
+    "fusion_recall@5": 0.23642777777777776,
+    "elapsed_s": 54.4
+  },
+  {
+    "model": "sentence-transformers/multi-qa-MiniLM-L6-cos-v1",
+    "alpha": 0.9,
+    "semantic_mrr": 0.1880950395112167,
+    "fusion_mrr": 0.19138001555302853,
+    "fusion_recall@5": 0.24442777777777777,
+    "elapsed_s": 68.1
+  },
+  {
+    "stage": "beta_search",
+    "beta": 0.0,
+    "mrr": 0.19138001555302853
+  },
+  {
+    "stage": "beta_search",
+    "beta": 0.1,
+    "mrr": 0.2161210205599037
+  },
+  {
+    "stage": "beta_search",
+    "beta": 0.25,
+    "mrr": 0.25921251732856776
+  },
+  {
+    "stage": "rerank_depth_search",
+    "depth": 10,
+    "mrr": 0.1859760582010582
+  },
+  {
+    "stage": "rerank_depth_search",
+    "depth": 20,
+    "mrr": 0.15523184705874332
+  }
+]

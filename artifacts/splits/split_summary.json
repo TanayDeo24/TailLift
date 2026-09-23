@@ -1,0 +1,16 @@
+{
+  "seed": 20260922,
+  "split_unit": "tail_query (query-grouped, no query appears in >1 split)",
+  "fractions": {
+    "train": 0.7,
+    "val": 0.15,
+    "test": 0.15
+  },
+  "n_eligible_tail_queries": 116655,
+  "n_ineligible_tail_queries": 1293135,
+  "n_train": 81658,
+  "n_val": 17498,
+  "n_test": 17499,
+  "n_head_index": 12261,
+  "leakage_check_disjoint_sets": true
+}

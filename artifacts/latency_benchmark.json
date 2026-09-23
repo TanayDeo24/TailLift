@@ -1,0 +1,42 @@
+{
+  "deployed_pipeline": "level5_support_prior",
+  "protocol": {
+    "n_warmup": 20,
+    "n_measured": 300,
+    "concurrency": 1,
+    "fixed_query_set_size": 40,
+    "timing_boundary_selected_final": "normalization -> embedding -> exact semantic retrieval over 12,261-query head index -> lexical scoring -> fusion -> train-only support-prior weighting -> final ranked output",
+    "timing_boundary_rerank_variant": "same as above, then cross-encoder rerank of top-10 fused candidates"
+  },
+  "cold_start_seconds": 13.221,
+  "hardware": {
+    "platform": "macOS-15.7.4-arm64-arm-64bit",
+    "processor": "arm",
+    "python_version": "3.12.7",
+    "torch_version": "2.7.0",
+    "device": "cpu"
+  },
+  "software_versions": {
+    "embed_model": "sentence-transformers/multi-qa-MiniLM-L6-cos-v1",
+    "cross_encoder": "cross-encoder/ms-marco-MiniLM-L-6-v2"
+  },
+  "latency_ms": {
+    "selected_final_level5_no_reranker": {
+      "p50": 18.918871879577637,
+      "p95": 21.78263664245606,
+      "p99": 25.056891441345215,
+      "mean": 18.963825702667236,
+      "min": 14.001131057739258,
+      "max": 27.247905731201172
+    },
+    "rejected_rerank_variant_level4": {
+      "p50": 42.71650314331055,
+      "p95": 116.74134731292726,
+      "p99": 123.6915636062622,
+      "mean": 48.822244803110756,
+      "min": 16.302108764648438,
+      "max": 127.95495986938477
+    }
+  },
+  "error_rate": 0.0
+}

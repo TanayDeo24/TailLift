@@ -1,0 +1,16 @@
+[ladder] Level 0/1 lexical baseline on val...
+[ladder] Phase A validation search on 3000 sampled val queries...
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading weights:   0%|          | 0/103 [00:00<?, ?it/s]Loading weights: 100%|██████████| 103/103 [00:00<00:00, 42901.02it/s]
+Loading weights:   0%|          | 0/103 [00:00<?, ?it/s]Loading weights: 100%|██████████| 103/103 [00:00<00:00, 12196.53it/s]
+[ladder] Phase A best so far: {'mrr': 0.19138001555302853, 'model': 'sentence-transformers/multi-qa-MiniLM-L6-cos-v1', 'alpha': 0.9}
+[ladder] Phase A best beta: 0.25 (mrr=0.2592)
+[ladder] Phase A: cross-encoder rerank depth search...
+Loading weights:   0%|          | 0/105 [00:00<?, ?it/s]Loading weights: 100%|██████████| 105/105 [00:00<00:00, 13936.77it/s]
+[ladder] FROZEN CONFIG: {'embed_model': 'sentence-transformers/multi-qa-MiniLM-L6-cos-v1', 'alpha_fusion': 0.9, 'beta_support_prior': 0.25, 'rerank_depth': 10, 'cross_encoder': 'cross-encoder/ms-marco-MiniLM-L-6-v2', 'primary_k': 5, 'primary_metric': 'MRR', 'seed': 20260922, 'val_sample_n': 3000}
+[ladder] Phase B: full val + full test evaluation with frozen config...
+Loading weights:   0%|          | 0/103 [00:00<?, ?it/s]Loading weights: 100%|██████████| 103/103 [00:00<00:00, 12062.36it/s]
+[ladder] val lexical MRR=0.1447 semantic MRR=0.1894 fusion MRR=0.1933 rerank MRR=0.1878 prior MRR=0.2648
+[ladder] test lexical MRR=0.1474 semantic MRR=0.1897 fusion MRR=0.1945 rerank MRR=0.1889 prior MRR=0.2661
+[ladder] Computing head-query self-retrieval ceiling...
+[ladder] Done in 1069.7s. Saved /Users/tanaydeo/Documents/Head-Query-Tail-Query-Mapping-master/artifacts/ladder_results.json

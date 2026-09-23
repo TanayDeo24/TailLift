@@ -1,0 +1,132 @@
+{
+  "newMedium": {
+    "path": "newMedium.txt",
+    "format": "tail_query || head_query || label(0/1)",
+    "n_rows": 1439823,
+    "n_malformed_rows": 0,
+    "n_unique_tail_queries": 1409790,
+    "n_unique_head_queries": 12261,
+    "label_distribution": {
+      "0": 1308930,
+      "1": 130893
+    },
+    "positive_rate": 0.09090909090909091,
+    "tail_degree_percentiles": {
+      "min": 1,
+      "p10": 1,
+      "p25": 1,
+      "median": 1,
+      "p75": 1,
+      "p90": 1,
+      "p99": 2,
+      "max": 13,
+      "mean": 1.0213031728129722,
+      "n": 1409790
+    },
+    "tail_degree_distribution_top10": [
+      [
+        1,
+        1385486
+      ],
+      [
+        2,
+        20827
+      ],
+      [
+        3,
+        2369
+      ],
+      [
+        4,
+        613
+      ],
+      [
+        5,
+        230
+      ],
+      [
+        8,
+        92
+      ],
+      [
+        6,
+        88
+      ],
+      [
+        7,
+        46
+      ],
+      [
+        9,
+        21
+      ],
+      [
+        10,
+        8
+      ]
+    ],
+    "n_tail_queries_with_at_least_one_positive_head": 116655,
+    "pct_tail_queries_with_positive_head": 0.08274636648011406,
+    "n_positive_heads_per_tail_percentiles": {
+      "min": 1,
+      "p10": 1,
+      "p25": 1,
+      "median": 1,
+      "p75": 1,
+      "p90": 1,
+      "p99": 3,
+      "max": 12,
+      "mean": 1.120792079207921,
+      "n": 116655
+    }
+  },
+  "head150": {
+    "path": "head150.txt",
+    "n_lines": 12261,
+    "n_unique": 12261,
+    "sample_first5": [
+      "rocio durcal",
+      "cruise critic",
+      "aol update",
+      "anthropologie",
+      "www.aaa.com"
+    ]
+  },
+  "original_split_out1": {
+    "path": "out (1).txt / train_data.txt / test_data.txt",
+    "format": "query1 , query2 , label(-1/1)  [DIFFERENT SCHEMA than newMedium.txt]",
+    "n_rows_out1": 100000,
+    "n_rows_train": 80000,
+    "n_rows_test": 20000,
+    "train_is_first_80pct_of_out1": true,
+    "test_is_last_20pct_of_out1": true,
+    "n_unique_query1_train": 21138,
+    "n_unique_query1_test": 4599,
+    "n_query1_overlap_train_test": 199,
+    "pct_test_query1_also_in_train": 0.04327027614698847,
+    "leakage_finding": "Original train/test split is a contiguous 80/20 line-order split of a single file, NOT query-grouped. Any query1 value appearing in more than one contiguous block leaks across the split."
+  },
+  "headkey_tailkey": {
+    "path": "headkey.txt / tailkey.txt",
+    "format": "flat printed Python list of clicked URLs; NOT linked to individual queries",
+    "n_urls_headkey": 298,
+    "n_urls_tailkey": 230,
+    "n_unique_urls_headkey": 149,
+    "n_unique_urls_tailkey": 115,
+    "n_urls_shared_between_head_and_tail": 4,
+    "usability_finding": "No per-query linkage present (flat URL list only). Cannot be used for per-query click-position, no-click, or session analysis."
+  },
+  "schema_availability": {
+    "raw_AOL_log_present_in_repo": false,
+    "fields_referenced_in_separator_scripts": [
+      "Query",
+      "ItemRank",
+      "ClickURL"
+    ],
+    "fields_NOT_referenced_in_any_script": [
+      "AnonID",
+      "QueryTime"
+    ],
+    "finding": "The raw AOL query log (AnonID, Query, QueryTime, ItemRank, ClickURL) is not present anywhere in this repository -- only already-derived pair files (newMedium.txt, out (1).txt/train/test, head150.txt, headkey.txt, tailkey.txt) exist. The original code (separator.py, vidit.jain@ada.iiit.ac.in) never reads AnonID or QueryTime even when the raw log was available, so no session/user/temporal information was ever computed by the original project either. This repository cannot support sessionization, first-click-position, reformulation, or abandonment analysis without re-acquiring the raw AOL log, which is deliberately NOT done here (see docs/DATA_PROVENANCE.md, Privacy)."
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "n_test_queries": 17499,
+  "evidence_metric": "pair_degree_in_newMedium.txt (proxy for available comparison evidence, NOT raw AOL frequency)",
+  "spearman_correlation_evidence_vs_final_mrr": {
+    "rho": -0.026256208571106446,
+    "p_value": 0.0005134851079739705
+  },
+  "spearman_correlation_evidence_vs_baseline_mrr": {
+    "rho": 0.06810182582080039,
+    "p_value": 1.9051733683856608e-19
+  },
+  "quality_by_evidence_decile": [
+    {
+      "decile": 7,
+      "n": 13823,
+      "degree_range": [
+        1.0,
+        1.0
+      ],
+      "mean_final_mrr": 0.19276843631904036,
+      "mean_baseline_mrr": 0.14979093173840688
+    },
+    {
+      "decile": 9,
+      "n": 3676,
+      "degree_range": [
+        2.0,
+        12.0
+      ],
+      "mean_final_mrr": 0.17435046289099607,
+      "mean_baseline_mrr": 0.1385669311754526
+    }
+  ],
+  "interpretation_caveat": "pair_degree here counts how many (tail,head) rows a query has in newMedium.txt, which reflects how many head queries shared a clicked URL with it under the original method -- it is a proxy for available evidence density, not the query's raw AOL search frequency (which is not recoverable, see docs/DATA_PROVENANCE.md)."
+}
