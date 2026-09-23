@@ -2,7 +2,8 @@
 
 Source: `artifacts/failure_analysis.json`, produced by
 `scripts/failure_analysis.py` from the frozen test-split ladder results.
-Baseline = Level 0/1 (reproduced original Jaccard method). Final = Level 5
+Baseline = Level 0/1 (original Jaccard similarity, preserved and adapted to
+full-index retrieval — see `docs/CHANGE_REPORT.md`). Final = Level 5
 (support-prior-weighted fusion, the validation-selected system). All example
 queries below are ordinary, non-identifying web-navigational/informational
 queries drawn directly from `newMedium.txt` (no user data attached to any

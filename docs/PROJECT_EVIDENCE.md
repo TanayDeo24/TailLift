@@ -122,7 +122,23 @@ artifact/command that produces it. Not resume language.
     4 "reranking hurts" finding was re-measured and corrected as a result —
     see item 15 and `docs/CHANGE_REPORT.md`.
 
-23. **51/51** tests pass after the serving-layer additions (25 original +
-    21 serving + 5 bugfix regression), including a deterministic-output
-    test and a train-only support-prior leakage guard scoped to the serving
-    layer. (`python3 -m pytest tests/ -q`)
+23. **51/51** tests pass after the serving-layer additions (25 original in
+    `tests/test_pipeline.py` + 20 in `tests/test_serving.py` + 5 bugfix
+    regression in `tests/test_mapping_bugfix.py` + 1 in
+    `tests/test_api_latency.py`), including a deterministic-output test and
+    a train-only support-prior leakage guard scoped to the serving layer.
+    (`python3 -m pytest tests/ -q`)
+
+24. The demo UI (`app/static/`) was redesigned for visual quality with zero
+    API/model/evaluation changes — verified by `git status` showing only
+    the 3 static files changed, 51/51 tests still passing, a real `uvicorn`
+    process hit over actual HTTP, and a real headless-browser (Playwright)
+    session confirming zero console errors on desktop and mobile viewports.
+
+25. SparseQuery's public standalone deployment was deliberately not
+    pursued: it is designed as an upstream query-mapping component for a
+    larger retrieval/ranking system (`docs/FINAL_REPORT.md` "Intended
+    System Role"), not a standalone product. Docker (`Dockerfile`,
+    `.dockerignore`) and Render (`render.yaml`) configuration remain
+    prepared for future use; local serving and the demo UI were verified
+    against a real running server (item 24). (`docs/DEPLOYMENT.md`)

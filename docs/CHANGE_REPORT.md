@@ -3,7 +3,9 @@
 ## ORIGINAL CAPABILITY (unmodified, carried forward as-is)
 
 - The core problem framing: map long-tail queries to head queries to inherit
-  richer historical evidence (README, unchanged).
+  richer historical evidence (original README content, preserved in full
+  beneath a modernized summary added during the final closure pass — see
+  `docs/FINAL_REPORT.md` §35 "Files modified").
 - The relevance definition for a tail→head pair: same clicked URL, rank ≤5
   both sides (from `separator.py`, algorithmically preserved in this
   project's task definition — see `docs/HEAD_TAIL_METHODOLOGY.md`).

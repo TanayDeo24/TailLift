@@ -1,3 +1,60 @@
+# SparseQuery
+### Long-Tail Query Mapping for Search Relevance
+
+SparseQuery is a search-relevance **component** that maps sparsely-supported
+("long-tail") queries to better-supported ("head") queries, using lexical,
+semantic, and train-only historical-support signals. It is designed to sit
+**upstream of** a retrieval/ranking system — an incoming query is mapped to
+a stronger query representation before retrieval runs, not served as a
+standalone search product:
+
+```
+incoming query -> SparseQuery mapping -> better-supported query representation -> downstream retrieval/ranking -> results
+```
+
+**Problem.** Frequent ("head") queries have abundant historical click
+evidence; rare ("tail") queries do not, so ranking quality for them tends to
+be worse. This project measures that gap on real click-derived relevance
+data and builds an intervention that narrows it.
+
+**Architecture.** A frozen system (`src/mapping.py`) combines a Jaccard
+lexical score, a sentence-transformer semantic similarity, and a
+training-split-only head-query popularity prior, ranked over a fixed
+12,261-query head index. Full trace: `docs/FINAL_ARCHITECTURE.md`.
+
+**Frozen, held-out results** (17,499 held-out tail queries, never used for
+tuning): baseline MRR 0.1474 → final MRR 0.2661 (**+80.5%** relative, 95% CI
+[0.115, 0.122]). Full evidence: `docs/FINAL_REPORT.md`.
+
+**Local demo:**
+
+```bash
+pip install -r requirements.txt -r requirements-serving.txt
+uvicorn app.main:app --reload --port 8000
+# open http://localhost:8000/
+```
+
+**API:**
+
+```bash
+curl -X POST localhost:8000/api/map \
+  -H "Content-Type: application/json" \
+  -d '{"query": "nfldraftcountdown", "k": 5}'
+```
+
+**Full methodology, data provenance, evaluation, serving architecture, and
+evidence:** see **[docs/FINAL_REPORT.md](docs/FINAL_REPORT.md)** — the
+canonical project summary.
+
+---
+
+*The original 2017 project README follows below, preserved for historical
+reference. It is not fully accurate to the current, modernized system —
+see [docs/QUERY_LOG_AUDIT.md](docs/QUERY_LOG_AUDIT.md) for a full trace of
+what in it holds up and what doesn't, and
+[docs/CHANGE_REPORT.md](docs/CHANGE_REPORT.md) for what was preserved,
+repaired, or newly built.*
+
 ### Problem Statement
 One of the biggest challenges of commercial search engines is how to handle tail queries, or queries that occur very infrequently. Frequent queries, also known as head queries, are easier to handle largely because their intents are evidenced by abundant click-through data (query logs). Tail queries have little historical data to rely on, which makes them difficult to be learned by ranking algorithms.
 

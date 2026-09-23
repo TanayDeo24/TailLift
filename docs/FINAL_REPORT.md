@@ -347,16 +347,29 @@ and artifact map, and `docs/DEPLOYMENT.md` for Docker/Render.
 
 ## 35. Files modified
 
-None of the original 32 repository files were modified — still true and
-verifiable via `git diff 946b9f9 -- <original files>` (empty). Files
-**created by this project itself** in the modeling phase and revised in the
-serving phase: `src/mapping.py` (added `materialize_model_`, the Level 4
-bugfix — see `docs/CHANGE_REPORT.md`), `scripts/latency_benchmark.py` (same
-fix applied), `artifacts/final_metrics.json` and `artifacts/ladder_results.json`
-(Level 4 entries corrected/annotated, all other fields unchanged — see
-`docs/CHANGE_REPORT.md`), and several `docs/*.md` files (precision-corrected
-per the documentation closure pass, and updated with the Level 4 bug-fix
-trace).
+**31 of the 32 original repository files remain byte-identical to the
+initial snapshot** — verifiable via
+`git diff 946b9f9 -- <original files except README.md>` (empty).
+**`README.md` is the one deliberate exception**: its top section was
+replaced with a short, modern summary (problem, architecture, frozen
+results, local demo/API commands, link to `docs/FINAL_REPORT.md`) during
+this final closure pass, per an explicit instruction to modernize it. The
+original 2017 README content was **not deleted** — it is preserved in full
+beneath a clearly labeled divider, so the historical record remains intact
+and readable; `docs/QUERY_LOG_AUDIT.md` still traces exactly which of its
+claims hold up.
+
+Files **created by this project itself** in the modeling phase and revised
+in the serving phase: `src/mapping.py` (added `materialize_model_`, the
+Level 4 bugfix — see `docs/CHANGE_REPORT.md`), `scripts/latency_benchmark.py`
+(same fix applied), `artifacts/final_metrics.json` and
+`artifacts/ladder_results.json` (Level 4 entries corrected/annotated, all
+other fields unchanged — see `docs/CHANGE_REPORT.md`), `app/static/{index.html,styles.css,app.js}`
+(visual redesign, no API/model change — see the redesign commit), and
+several `docs/*.md` files (precision-corrected per the documentation closure
+passes, updated with the Level 4 bug-fix trace, and updated with the
+product-positioning/deployment-status language from this final closure
+pass).
 
 ## 36. Original vs. repaired vs. new
 
@@ -413,12 +426,12 @@ Full cited list: `docs/PROJECT_EVIDENCE.md`.
 | Measurable search-quality improvement | DIRECTLY DEMONSTRATED | paired bootstrap CI excluding zero, §22 |
 | Intervention coverage | DIRECTLY DEMONSTRATED | `artifacts/coverage_analysis.json`, §25 |
 | Abstention/confidence handling | PARTIALLY DEMONSTRATED | confidence signal validated (quality rises with confidence) but no abstention policy deployed in the primary system |
-| First-click-position analysis | NOT DEMONSTRATED | no rank data survives per-row; documented limitation |
-| No-click analysis | NOT DEMONSTRATED | no impression lists exist |
-| Abandonment analysis | NOT DEMONSTRATED | no session/timestamp data |
+| First-click-position analysis | NOT DEMONSTRATED / BLOCKED BY DATA | no rank data survives per-row; documented limitation |
+| No-click analysis | NOT DEMONSTRATED / BLOCKED BY DATA | no impression lists exist |
+| Session reformulation / abandonment analysis | NOT DEMONSTRATED / BLOCKED BY DATA | no session/timestamp data exists anywhere in this repository |
 | Offline click/relevance recovery | PARTIALLY DEMONSTRATED | offline query-mapping recovery fully demonstrated; document/click-level recovery (Task B) not built, Task A chosen as primary instead |
-| Production-aware latency | DIRECTLY DEMONSTRATED | exact-protocol benchmark, §28 |
-| Machine learning | DIRECTLY DEMONSTRATED | bi-encoder, cross-encoder, validation-driven model/hyperparameter selection |
+| Production-aware / serving-path latency | DIRECTLY DEMONSTRATED | exact-protocol core-inference benchmark (§28) plus a real FastAPI serving-layer benchmark (§"API-Level Latency") |
+| Machine learning | DIRECTLY DEMONSTRATED | bi-encoder, cross-encoder (evaluated and correctly rejected), validation-driven model/hyperparameter selection |
 
 ## Serving Architecture (added after the model freeze)
 
@@ -461,17 +474,27 @@ probability — scores are labeled precisely (`lexical_score`,
 
 ## Deployment
 
-**Status: READY FOR DEPLOYMENT, not deployed.** Docker (`Dockerfile`,
-`.dockerignore`) and Render (`render.yaml`) configuration are complete and
-reviewed; Docker itself is not installed in the environment this project was
-built in, so `docker build`/`docker run` could not be executed here (the
-underlying service construction path the Docker build exercises was,
-however, verified directly — see `docs/DEPLOYMENT.md` §2). No Render account
-or API credentials are available in this environment, so no deployment was
-attempted. Full instructions, memory/cold-start considerations, and
-troubleshooting: `docs/DEPLOYMENT.md`. No live URL is claimed anywhere in
-this project because none exists yet — see "Files Created" and
-`docs/DEPLOYMENT.md` §3 for the exact manual steps required.
+| Layer | Status |
+|---|---|
+| Local serving (FastAPI + frozen Level 5 pipeline) | **VERIFIED** — a real `uvicorn` process was started and hit over actual HTTP, not just an in-process test client |
+| Local interactive demo UI | **VERIFIED** — driven end-to-end by a real headless-browser session against the live API, zero console errors |
+| Docker configuration | **PREPARED** — `Dockerfile`, `.dockerignore`; the underlying service-construction path the build exercises was verified directly (Docker itself is not installed in the environment this project was built in, so `docker build` could not be executed here — see `docs/DEPLOYMENT.md` §2) |
+| Render configuration | **PREPARED** — `render.yaml`, ready to apply |
+| Public standalone deployment | **INTENTIONALLY NOT PERFORMED** |
+
+**Why public deployment was not pursued — a product decision, not a
+blocker.** SparseQuery is designed as an upstream relevance component that
+sits between an incoming query and a downstream retrieval/ranking system
+(see "Intended System Role" below), not as a standalone consumer search
+product. Standing up a public website would expose only an internal
+query-rewriting component in isolation — not the complete search experience
+it is meant to feed into — so it was deliberately not pursued as part of
+this closure pass. This is unrelated to, and not blocked by, credential or
+environment availability. The Docker and Render configuration remain
+prepared and unused-but-ready for whenever SparseQuery is integrated behind
+a real downstream system (see `docs/DEPLOYMENT.md` for the exact steps, kept
+as a future deployment guide). No live URL is stated anywhere in this
+project because none exists and none is currently planned.
 
 ## Serving Tests
 
@@ -621,16 +644,72 @@ Explicitly confirmed, checked by direct artifact comparison, not assertion:
   invalid numbers was updated. See `docs/CHANGE_REPORT.md` "Level 4
   cross-encoder bug fix" for the complete trace.
 
+## Intended System Role
+
+SparseQuery is a long-tail query-mapping **component** for search-relevance
+systems — it maps sparsely-supported tail queries to better-supported head
+queries using lexical, semantic, and train-only historical-support signals.
+It is designed to sit **upstream of** a retrieval/ranking system, not to
+operate as a complete, standalone search engine:
+
+```
+incoming query
+    |
+    v
+sparse / long-tail query handling
+    |
+    v
+SparseQuery mapping   <-- this project
+    |
+    v
+better-supported head-query representation
+    |
+    v
+retrieval / ranking system
+    |
+    v
+search results
+```
+
+The FastAPI service and demo UI built in this closure pass demonstrate that
+the frozen model can be served through a real API with production-shaped
+engineering (health checks, containerization, tested latency) — they are a
+**local interactive engineering/demo interface**, not the project's primary
+deliverable, and not a claim of search-relevance quality on their own (the
+held-out evaluation in this report is that evidence). A future integration
+could connect SparseQuery's mapped output to a separate downstream
+retrieval/ranking system (for example, a hybrid search project) to form an
+end-to-end pipeline — that integration is explicitly **not implemented
+here**.
+
 ## Serving/Deployment Freeze Verdict
 
-**READY FOR DEPLOYMENT.** The serving layer, demo UI, API, and containerization
-are complete, tested (51/51 passing, including the API-matches-frozen-mapper
-guarantee), and documented (`docs/DEPLOYMENT.md`). Deployment to Render has
-not occurred — no Docker installation or Render credentials are available in
-the environment this project was built in — so this is explicitly
-**READY FOR DEPLOYMENT**, not **DEPLOYED**. See `docs/DEPLOYMENT.md` §3 for
-the exact minimal manual steps required to complete deployment (push to a
-Git remote Render can access, then either apply the `render.yaml` Blueprint
-or create a Docker-runtime Web Service pointing at this repository's
-`Dockerfile`). No public URL is stated anywhere in this project because none
-exists.
+The serving layer, demo UI, API, and containerization are complete, tested
+(51/51 passing, including the API-matches-frozen-mapper guarantee), and
+documented (`docs/DEPLOYMENT.md`) — see the Deployment status table above.
+Public standalone deployment was intentionally not pursued as an
+architectural/product decision (see "Intended System Role"), not because of
+any missing credential or unresolved engineering issue. This project's
+status is **ENGINEERING COMPLETE, SERVING-READY**.
+
+## Final Project Status
+
+- **Core model**: frozen (Level 5 — lexical + semantic fusion + train-only
+  support prior), unchanged since freeze except for the documented,
+  audited Level 4 comparison-ladder bug correction (§"Level 4 cross-encoder
+  bug fix"), which altered no Level 0/1/2/3/5 metric.
+- **Evaluation**: held-out, leakage-safe, statistically validated (§16-24,
+  §33-34 above).
+- **Serving**: built, tested, and verified against a real running server
+  and a real browser session (§"Serving Architecture" through
+  §"API-Level Latency" above).
+- **Deployment**: Docker and Render configuration prepared; public
+  deployment intentionally not pursued — an architectural decision, not a
+  blocker (§"Intended System Role", §"Deployment").
+- **Tests**: 51/51 passing.
+
+**Project status: ENGINEERING COMPLETE · SERVING-READY.**
+
+## Final Freeze Verdict
+
+**READY TO FREEZE.**

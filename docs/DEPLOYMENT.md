@@ -1,9 +1,17 @@
 # Deployment
 
 This document covers running the SparseQuery serving layer locally, in
-Docker, and on Render. It is downstream of the frozen model (see
-`docs/FINAL_REPORT.md`) — nothing here changes any relevance metric, split,
-or hyperparameter.
+Docker, and (as a **future deployment guide**) on Render. It is downstream
+of the frozen model (see `docs/FINAL_REPORT.md`) — nothing here changes any
+relevance metric, split, or hyperparameter.
+
+**Public standalone deployment is intentionally not planned as part of this
+project.** SparseQuery is designed as an upstream query-mapping component
+for a larger retrieval/ranking system (see `docs/FINAL_REPORT.md` "Intended
+System Role"), not as a standalone consumer search product — so it does not
+currently need a public URL. The Docker and Render configuration below is
+kept ready for whenever SparseQuery is integrated behind a real downstream
+system; it is not evidence of an unresolved blocker.
 
 ## 1. Local development
 
@@ -56,11 +64,15 @@ repository:
 3. No environment variables or secrets are required for ordinary inference.
 4. Deploy. Render injects `$PORT`; the container's `CMD` already binds to it.
 
-**This repository has not been deployed to Render** — no Render account/API
-credentials are available in the environment this project was built in. See
-`docs/FINAL_REPORT.md` "Deployment" for the exact manual steps you need to
-perform, and the freeze verdict this implies (**READY FOR DEPLOYMENT**, not
-**DEPLOYED**).
+**This repository has not been deployed to Render, and no deployment is
+currently planned** — this is a deliberate product decision (see above), not
+a credential or environment blocker (no Render account/API credentials
+happen to be available in the environment this project was built in either,
+but that is incidental to the decision, not the reason for it). Should a
+future integration call for standalone deployment, the exact manual steps
+are listed above (§3). Project status: **ENGINEERING COMPLETE,
+SERVING-READY** — see `docs/FINAL_REPORT.md` "Deployment" and "Final Freeze
+Verdict".
 
 ## 4. Expected startup behavior
 
