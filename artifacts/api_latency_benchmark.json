@@ -1,0 +1,16 @@
+{
+  "protocol": {
+    "n_warmup": 15,
+    "n_measured": 300,
+    "transport": "FastAPI TestClient (in-process ASGI, no real network hop)",
+    "note": "Measures API-layer (request validation + handler + JSON encoding) overhead ON TOP OF the frozen core-inference benchmark in artifacts/latency_benchmark.json. Not a re-evaluation of relevance."
+  },
+  "api_latency_ms": {
+    "p50": 21.843314170837402,
+    "p95": 29.822146892547615,
+    "p99": 33.3429193496704,
+    "mean": 23.19440205891927,
+    "min": 17.65298843383789,
+    "max": 95.75343132019043
+  }
+}

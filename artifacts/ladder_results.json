@@ -1720376,5 +1720376,6 @@
     "n": 12261,
     "definition": "Reference ceiling only: a head query embedded and matched against the SAME head-query index it was drawn from (self-identity retrieval). This is NOT an independent measurement of production head-query search quality (no raw head-only click logs are available in this repository -- see docs/DATA_PROVENANCE.md). It represents the best case a query with full historical evidence could achieve under this retrieval architecture, and is used only as the reference point for baseline_gap / final_gap in docs/BENCHMARK_REPORT.md."
   },
-  "elapsed_seconds": 1069.7
+  "elapsed_seconds": 1069.7,
+  "KNOWN_BUG_NOTICE_level4_rerank": "INVALID: the level4_rerank entries under levels.val and levels.test in this file were computed with a cross-encoder that silently emitted NaN for every input on this platform (see docs/CHANGE_REPORT.md \"Level 4 cross-encoder bug fix\" and artifacts/level4_corrected.json for the corrected re-run). Because numpy.argsort on an all-NaN array is a stable no-op, these entries reflect an unreranked, depth-10-truncated fusion ranking, not a genuine cross-encoder evaluation. Retained here unmodified for audit-trail purposes only -- do not cite these level4_rerank numbers in any report; use artifacts/level4_corrected.json instead. All other levels (0/1, 2, 3, 5) and the head_self_retrieval_ceiling in this file are unaffected by this bug and remain valid."
 }

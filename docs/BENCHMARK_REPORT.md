@@ -78,21 +78,41 @@ consolidated in `artifacts/final_metrics.json`.
 | 0/1 | Original Jaccard similarity, preserved and adapted to full-index retrieval | 0.1447 | 0.1474 |
 | 2 | Semantic bi-encoder only (`multi-qa-MiniLM-L6-cos-v1`) | 0.1894 | 0.1897 |
 | 3 | Lexical + semantic fusion (α=0.9) | 0.1933 | 0.1945 |
-| 4 | Fusion + cross-encoder rerank (`ms-marco-MiniLM-L-6-v2`, depth=10) | 0.1878 | 0.1889 |
+| 4 | Fusion + cross-encoder rerank (`ms-marco-MiniLM-L-6-v2`, depth=10) | 0.1755 | 0.1749 |
 | 5 | Fusion + train-only support prior (β=0.25) | **0.2648** | **0.2661** |
 
 **Architecture selection** (`artifacts/final_metrics.json` -> `architecture_selection`):
 Level 5 selected — highest MRR on the full validation split, decided before
 any test-split number was computed (Section 20/38/39 compliance).
 
-**Negative result, reported honestly**: Level 4 (cross-encoder rerank)
-underperforms Level 3 (fusion alone) on both validation and test. The
-off-the-shelf MS MARCO passage-ranking cross-encoder does not transfer
-cleanly to query-query mapping, at least not without task-specific
-fine-tuning (out of scope here — see `docs/FINAL_REPORT.md` Limitations).
-This is exactly the kind of finding Section 40's "negative results" and
-Section 43's "reranker hurts" failure category ask to be preserved, not
-hidden by quietly making the reranker the final system anyway.
+**Level 4 numbers were corrected after a bug was found and fixed while
+building the serving layer.** The cross-encoder used for reranking silently
+emitted NaN for every input on this platform (root cause: `transformers`
+5.17.0's fast-weight-loading path leaves parameter tensors that read as
+finite and contiguous under direct inspection but produce NaN under matmul
+on this PyTorch 2.7.0/Apple Silicon CPU combination — full trace in
+`docs/CHANGE_REPORT.md`). Because `numpy.argsort` on an all-NaN array
+preserves input order, the ORIGINAL Level 4 evaluation was silently a no-op
+rerank of the fusion top-10 candidates (i.e. it measured candidate-depth
+truncation, not cross-encoder reranking) and its reported "reranking hurts
+quality" framing was **incorrect** — not because reranking helped, but
+because reranking never actually ran. The bug was fixed
+(`src/mapping.py::materialize_model_`, regression-tested in
+`tests/test_mapping_bugfix.py`) and Level 4 was re-evaluated on the full
+validation split, then — since it still did not beat Level 5 — on the
+held-out test split exactly once (`scripts/rerun_level4_corrected.py`,
+`artifacts/level4_corrected.json`). The numbers above are the corrected
+values.
+
+**Genuine negative result, now properly measured**: a *functioning*
+cross-encoder reranker still underperforms Level 3 (fusion alone) on both
+validation (0.1755 vs 0.1933) and test (0.1749 vs 0.1945). This is a real
+finding now, not a bug artifact: the off-the-shelf MS MARCO passage-ranking
+cross-encoder does not transfer cleanly to query-query mapping, at least not
+without task-specific fine-tuning (out of scope here — see
+`docs/FINAL_REPORT.md` Limitations). Level 5 remains the correctly-selected
+final architecture — the corrected Level 4 numbers do not change that
+decision (Level 5 val MRR 0.2648 was never in doubt).
 
 ## 12. Search-quality diagnosis
 See `docs/SEARCH_QUALITY_DIAGNOSIS.md`.

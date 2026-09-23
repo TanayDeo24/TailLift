@@ -122,11 +122,18 @@ present data file).
 
 | Level | System | Val MRR | Test MRR |
 |---|---|---|---|
-| 0/1 | Original Jaccard, reproduced | 0.1447 | 0.1474 |
+| 0/1 | Original Jaccard similarity, preserved and adapted to full-index retrieval | 0.1447 | 0.1474 |
 | 2 | Semantic bi-encoder | 0.1894 | 0.1897 |
 | 3 | Lexical+semantic fusion | 0.1933 | 0.1945 |
-| 4 | Fusion + cross-encoder rerank | 0.1878 | 0.1889 |
+| 4 | Fusion + cross-encoder rerank (corrected — see note below) | 0.1755 | 0.1749 |
 | **5** | **Fusion + train-only support prior (SELECTED)** | **0.2648** | **0.2661** |
+
+*Level 4 note:* the cross-encoder originally used for reranking silently
+emitted NaN for every input on this platform (a real bug, root-caused and
+fixed while building the serving layer — see §31 and
+`docs/CHANGE_REPORT.md`). The values above are the corrected re-evaluation
+(`artifacts/level4_corrected.json`); the original (invalid) 0.1878/0.1889
+figures are no longer cited anywhere in this report.
 
 ## 17. Baseline head quality
 
@@ -228,8 +235,23 @@ sanitized examples: `docs/FAILURE_ANALYSIS.md`.
 
 ## 31. Negative results
 
-1. Cross-encoder reranking reduces MRR relative to fusion alone, on both
-   validation and test.
+1. **Cross-encoder reranking underperforms fusion alone** — validation MRR
+   0.1755 vs. 0.1933, test MRR 0.1749 vs. 0.1945. This finding was
+   originally measured incorrectly: a bug in the cross-encoder's inference
+   path (see "Level 4 cross-encoder bug fix" below) caused it to silently
+   emit NaN for every input, which — because `numpy.argsort` on an all-NaN
+   array preserves input order — made the original "rerank" step a no-op.
+   The bug was found, root-caused, and fixed while building the serving
+   layer; Level 4 was then correctly re-evaluated on validation (once) and,
+   since it still did not beat Level 5, on the held-out test split (once).
+   The corrected numbers above are the genuine finding: even a *working*
+   off-the-shelf passage-ranking cross-encoder does not transfer cleanly to
+   query-query mapping without task-specific fine-tuning. Level 5 remains
+   the correctly-selected final architecture throughout — this correction
+   changed a secondary ladder entry and its causal explanation, not the
+   deployed system or any headline metric (baseline/final MRR, gap,
+   coverage, and paired CI are all Level 0/1 and Level 5 numbers, untouched
+   by this bug or its fix).
 2. The available evidence-density proxy does not meaningfully correlate
    with mapping quality.
 3. The support-prior weighting can misfire for high-lexical-overlap,
@@ -237,40 +259,104 @@ sanitized examples: `docs/FAILURE_ANALYSIS.md`.
 
 None of these were smoothed over to make the headline number look cleaner.
 
+## Level 4 cross-encoder bug fix (engineering correction, added after the model freeze)
+
+**What was found**: while building the serving layer's experimental
+reranker comparison endpoint, `cross-encoder/ms-marco-MiniLM-L-6-v2` was
+found to emit NaN for every input on this platform, verified at the raw
+`transformers.AutoModelForSequenceClassification` level (not a
+sentence-transformers-specific issue).
+
+**Root cause**: isolated via forward hooks and manual tensor inspection.
+The model's parameter tensors, as loaded by `transformers` 5.17.0's newer
+fast-weight-loading path, report as finite, NaN-free, and contiguous under
+direct inspection (`torch.isnan(p).any()` is `False`) — but a plain
+`torch.matmul` using those exact tensors produces NaN, while the identical
+values copied into freshly-allocated storage (`.clone().contiguous()`)
+compute correctly. This points to a storage-level artifact (likely
+mmap/lazy-materialization related) specific to this `transformers` version
+on this PyTorch 2.7.0 / Apple Silicon CPU combination, not a genuine
+numerical instability or a corrupted checkpoint.
+
+**Fix**: `src/mapping.py::materialize_model_(model)` — clones every
+parameter and buffer into fresh, contiguous storage immediately after
+`from_pretrained(...)`, once, at load time. Applied everywhere the
+cross-encoder is loaded: `scripts/rerun_level4_corrected.py`,
+`scripts/latency_benchmark.py`, `app/service.py`.
+
+**Validation**: `tests/test_mapping_bugfix.py` (5 tests) — asserts finite
+outputs, correct relative ranking on sanity pairs, idempotence, and that
+the fix does not alter parameter values (only their storage).
+
+**Correction result**: Level 4 val MRR 0.1755 (< Level 5's frozen 0.2648,
+so per the pre-agreed decision rule, Level 5 stayed frozen and Level 4 was
+evaluated on test exactly once) → Level 4 test MRR 0.1749.
+
+**Confirmation — unaffected by this bug or its fix**: Level 0/1 baseline,
+Level 2, Level 3, Level 5 (the deployed system), train/val/test split
+membership, labels, the relevance definition, K, head/tail definitions, and
+every frozen Level 5 hyperparameter (α=0.9, β=0.25, embed model). Verified:
+`artifacts/final_metrics.json::baseline_tail_metric` and `final_tail_metric`
+are byte-identical to their pre-correction values.
+
 ## 32. Test status
 
-25/25 tests pass (`python3 -m pytest tests/ -q`). Coverage: tokenization,
-Jaccard math, fusion at boundary weights, support-prior train-only
-leakage-firewalling, ranking metrics (rank-of-first-relevant, per-query
-metrics, aggregation), paired bootstrap CI (zero-delta and positive-delta
-cases, unequal-length rejection), and split-disjointness/eligibility/
-head-index-size assertions.
+**51/51** tests pass (`python3 -m pytest tests/ -q`): 25 in
+`tests/test_pipeline.py` (tokenization, Jaccard math, fusion at boundary
+weights, support-prior train-only leakage-firewalling, ranking metrics,
+paired bootstrap CI, split-disjointness/eligibility/head-index-size
+assertions), 20 in `tests/test_serving.py` (serving layer, including the
+critical API-matches-frozen-mapper test), 5 in `tests/test_mapping_bugfix.py`
+(Level 4 cross-encoder NaN-bug regression guard), 1 in
+`tests/test_api_latency.py` (API-level benchmark sanity check).
 
 ## 33. Reproduction commands
 
 ```bash
 pip install -r requirements.txt
 bash scripts/reproduce_all.sh
+
+# serving layer (added after the model freeze)
+pip install -r requirements-serving.txt
+uvicorn app.main:app --reload --port 8000
+python3 -m pytest tests/test_serving.py tests/test_mapping_bugfix.py -q
 ```
 
 See `docs/REPRODUCIBILITY.md` for the full step-by-step breakdown, seeds,
-and artifact map.
+and artifact map, and `docs/DEPLOYMENT.md` for Docker/Render.
 
 ## 34. Files created
 
-`docs/*.md` (14 documents), `scripts/audit_data.py`,
+**Modeling/evaluation phase**: `docs/*.md` (14 documents), `scripts/audit_data.py`,
 `scripts/build_splits.py`, `scripts/run_ladder.py`,
 `scripts/build_report_artifacts.py`, `scripts/sparsity_correlation.py`,
 `scripts/failure_analysis.py`, `scripts/coverage_analysis.py`,
 `scripts/latency_benchmark.py`, `scripts/reproduce_all.sh`,
 `src/mapping.py`, `src/metrics.py`, `tests/test_pipeline.py`,
-`requirements.txt`, `artifacts/*.json` (11 machine-readable result files).
+`requirements.txt`, `artifacts/*.json` (machine-readable result files).
+
+**Serving/deployment phase**: `app/main.py`, `app/service.py`,
+`app/schemas.py`, `app/static/index.html`, `app/static/app.js`,
+`app/static/styles.css`, `tests/test_serving.py`,
+`tests/test_mapping_bugfix.py`, `tests/test_api_latency.py`,
+`scripts/rerun_level4_corrected.py`, `Dockerfile`, `.dockerignore`,
+`render.yaml`, `requirements-serving.txt`, `docs/DEPLOYMENT.md`,
+`.gitignore`, `artifacts/level4_corrected.json`,
+`artifacts/api_latency_benchmark.json`,
+`artifacts/head_embeddings_<hash>.npy`.
 
 ## 35. Files modified
 
-None of the original 32 repository files were modified. This project is
-purely additive on top of the original snapshot (verifiable via
-`git diff 946b9f9 -- <original files>` — empty).
+None of the original 32 repository files were modified — still true and
+verifiable via `git diff 946b9f9 -- <original files>` (empty). Files
+**created by this project itself** in the modeling phase and revised in the
+serving phase: `src/mapping.py` (added `materialize_model_`, the Level 4
+bugfix — see `docs/CHANGE_REPORT.md`), `scripts/latency_benchmark.py` (same
+fix applied), `artifacts/final_metrics.json` and `artifacts/ladder_results.json`
+(Level 4 entries corrected/annotated, all other fields unchanged — see
+`docs/CHANGE_REPORT.md`), and several `docs/*.md` files (precision-corrected
+per the documentation closure pass, and updated with the Level 4 bug-fix
+trace).
 
 ## 36. Original vs. repaired vs. new
 
@@ -334,7 +420,99 @@ Full cited list: `docs/PROJECT_EVIDENCE.md`.
 | Production-aware latency | DIRECTLY DEMONSTRATED | exact-protocol benchmark, §28 |
 | Machine learning | DIRECTLY DEMONSTRATED | bi-encoder, cross-encoder, validation-driven model/hyperparameter selection |
 
-## 40. Hard completion checklist
+## Serving Architecture (added after the model freeze)
+
+A FastAPI application (`app/`) wraps the frozen Level 5 system for live
+demonstration. It reuses `src/mapping.py`'s `LexicalMapper`, `FusionMapper`,
+and `SupportPriorMapper` directly and reads `alpha`/`beta`/the embedding
+model name from `artifacts/frozen_config.json` — no ranking logic is
+duplicated or reimplemented. Full diagram: `docs/FINAL_ARCHITECTURE.md`
+§"Serving architecture." The train-only support prior is built exclusively
+from `artifacts/splits/train.json`, the same file the frozen evaluation
+used — never val/test. The rejected cross-encoder (Level 4) is not on the
+default serving path; it loads lazily only behind an explicit opt-in flag.
+
+## Demo UI
+
+A single-page vanilla HTML/CSS/JS interface (`app/static/`), served by the
+same FastAPI process (no separate frontend deploy). Features: a query input
+with 5 clickable sanitized example queries, ranked mapping results with
+per-candidate lexical/semantic/support/final scores, a three-way comparison
+view (lexical baseline vs. semantic-only vs. final system), a system-info
+panel pulling live values from `/api/metadata` (explicitly labeled "Offline
+held-out evaluation"), and a collapsible methodology section. Loading,
+error, and empty-input states are handled; output is escaped
+(`escapeHtml()` in `app.js`) before insertion into the DOM.
+
+## API
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /health` | readiness, model-loaded flag, head-index size, frozen-config version hash |
+| `POST /api/map` | the canonical frozen Level 5 mapping (query, k=1-10) → ranked head queries with per-candidate scores |
+| `POST /api/compare` | lexical baseline vs. semantic-only vs. final system, side by side; the rejected cross-encoder is available only via `include_experimental_reranker: true` |
+| `GET /api/metadata` | factual project metadata (head-index size, frozen model/alpha/beta, held-out test size, baseline/final MRR, relative improvement, local P95 latency), explicitly labeled as offline evaluation results |
+
+Input validation: non-empty/non-whitespace query (max 300 chars), K bounded
+to 1-10 (Pydantic `Field` constraints in `app/schemas.py`, enforced as HTTP
+422 on violation). No confidence value is presented as a calibrated
+probability — scores are labeled precisely (`lexical_score`,
+`semantic_score`, `support_score`, `final_score`).
+
+## Deployment
+
+**Status: READY FOR DEPLOYMENT, not deployed.** Docker (`Dockerfile`,
+`.dockerignore`) and Render (`render.yaml`) configuration are complete and
+reviewed; Docker itself is not installed in the environment this project was
+built in, so `docker build`/`docker run` could not be executed here (the
+underlying service construction path the Docker build exercises was,
+however, verified directly — see `docs/DEPLOYMENT.md` §2). No Render account
+or API credentials are available in this environment, so no deployment was
+attempted. Full instructions, memory/cold-start considerations, and
+troubleshooting: `docs/DEPLOYMENT.md`. No live URL is claimed anywhere in
+this project because none exists yet — see "Files Created" and
+`docs/DEPLOYMENT.md` §3 for the exact manual steps required.
+
+## Serving Tests
+
+20 new tests in `tests/test_serving.py` (service init, health, metadata,
+static UI route, `/api/map` validation — empty/whitespace/K-bounds,
+deterministic output, all score fields present, `/api/compare`'s three
+default systems plus the opt-in experimental reranker) plus 5 in
+`tests/test_mapping_bugfix.py` (the Level 4 cross-encoder NaN-bug regression
+guard) plus 1 in `tests/test_api_latency.py` (the API-level benchmark sanity
+check). The single most important serving test,
+`test_api_matches_frozen_mapper`, independently reconstructs the frozen
+Level 5 pipeline from `artifacts/frozen_config.json` and
+`artifacts/splits/train.json` and asserts the live API's ranked output and
+scores are identical — this is what guarantees the demo layer cannot
+silently drift from the frozen, evaluated system. All 51 tests (25
+pre-existing in `tests/test_pipeline.py` + 26 new across the three files
+above) pass.
+
+## API-Level Latency
+
+A new, separate benchmark (`tests/test_api_latency.py`), distinct from the
+frozen core-inference benchmark (`artifacts/latency_benchmark.json`).
+Measures FastAPI request validation + handler + JSON-encoding overhead on
+top of core inference, 15 warmup + 300 measured requests, in-process ASGI
+transport: **P50 21.8ms / P95 29.8ms / P99 33.3ms**
+(`artifacts/api_latency_benchmark.json`) — versus the core-inference-only
+P50 18.9ms / P95 21.8ms / P99 25.1ms. This is a serving-overhead
+measurement, not a re-evaluation of relevance, and was never used to tune
+the frozen model.
+
+## Persistence Decision
+
+**No database was added.** This application has no legitimate persistence
+requirement at this stage: it serves a frozen, pre-computed model with no
+user accounts, no feedback collection, no query-history feature, and no
+usage analytics currently in scope. Adding Neon/PostgreSQL (or any other
+database) here would be unjustified complexity with no corresponding
+capability. If a real requirement emerges later (explicit user feedback on
+mappings, demo query history, model-version experiment logging), it should
+be added deliberately at that point, not preemptively. The service remains
+fully stateless.
 
 FOUNDATION: git/provenance recorded ✅ · original architecture traced ✅ ·
 data provenance documented ✅ · schema audited ✅ · privacy treatment
@@ -389,8 +567,9 @@ LATENCY: models loaded before benchmark ✅ · ≥15 warmups ✅ (20) · ≥300
 measured ✅ · concurrency=1 ✅ · timing boundary documented ✅ · P50/P95/P99 ✅
 · hardware recorded ✅
 
-QUALITY: tests added ✅ (25) · all pass ✅ · failure analysis complete ✅ ·
-negative results preserved ✅
+QUALITY: tests added ✅ (51, including 20 serving + 5 bugfix regression
+added post-freeze) · all pass ✅ · failure analysis complete ✅ · negative
+results preserved ✅ (including the corrected Level 4 finding)
 
 REPRODUCIBILITY: setup documented ✅ · preprocessing documented ✅ · splits
 reproducible ✅ · versions recorded ✅ · seeds recorded ✅ · exact commands ✅
@@ -401,7 +580,7 @@ included, documenting exclusion rather than being skipped)
 
 JD: all 15+ capabilities audited ✅ (§39)
 
-## 41. Final freeze verdict
+## 41. Final freeze verdict (modeling/evaluation phase)
 
 **READY TO FREEZE**, with the limitations in §38 and the BLOCKED items in
 §40 disclosed as firm, evidenced data-availability constraints rather than
@@ -409,6 +588,49 @@ unfinished work. Every metric in this report traces to a committed,
 re-runnable artifact (`artifacts/*.json`) produced by a committed script
 (`scripts/*.py`), with a single frozen configuration evaluated once on
 held-out data, a validation-only optimization procedure, an enforced
-leakage-free split, a passing 25-test suite, and negative results reported
-alongside the positive ones. Nothing here depends on data this repository
-does not actually contain.
+leakage-free split, a passing test suite, and negative results reported
+alongside the positive ones (including a real bug found and fixed in the
+rejected Level 4 component after this section was first written — see
+"Level 4 cross-encoder bug fix" above; the fix did not change which
+architecture is frozen). Nothing here depends on data this repository does
+not actually contain.
+
+## Frozen Evaluation Confirmation (serving/deployment phase)
+
+Explicitly confirmed, checked by direct artifact comparison, not assertion:
+
+- **No relevance metric changed.** `baseline_tail_metric` (0.1474331...),
+  `final_tail_metric` (0.2661195...), `baseline_gap`, `final_gap`, and
+  `paired_bootstrap` in `artifacts/final_metrics.json` are byte-identical
+  before and after the serving-phase work.
+- **No test split changed.** `artifacts/splits/{train,val,test}.json` were
+  not touched; `tests/test_pipeline.py::test_splits_are_disjoint` still
+  passes.
+- **No model was retuned.** `artifacts/frozen_config.json` (embed model,
+  α=0.9, β=0.25, K=5) was not modified; `app/service.py` reads it rather
+  than hardcoding copies (`tests/test_serving.py::test_service_uses_frozen_config_not_hardcoded_copies`).
+- **No frozen evaluation artifact was altered to improve results.** The one
+  correction made — Level 4's numbers — went *down* on the ladder (from an
+  invalid, bug-produced 0.1878/0.1889 to a genuine, lower 0.1755/0.1749),
+  and the corrected numbers made the frozen Level 5 architecture look
+  *more* clearly correct, not less — this was a bug fix restoring accuracy,
+  not a tuning pass chasing a better number. The correction is fully
+  audited: original bug documented, root cause traced, fix applied and
+  regression-tested, validation-first decision rule followed exactly (val
+  checked before test was touched), and every document that cited the
+  invalid numbers was updated. See `docs/CHANGE_REPORT.md` "Level 4
+  cross-encoder bug fix" for the complete trace.
+
+## Serving/Deployment Freeze Verdict
+
+**READY FOR DEPLOYMENT.** The serving layer, demo UI, API, and containerization
+are complete, tested (51/51 passing, including the API-matches-frozen-mapper
+guarantee), and documented (`docs/DEPLOYMENT.md`). Deployment to Render has
+not occurred — no Docker installation or Render credentials are available in
+the environment this project was built in — so this is explicitly
+**READY FOR DEPLOYMENT**, not **DEPLOYED**. See `docs/DEPLOYMENT.md` §3 for
+the exact minimal manual steps required to complete deployment (push to a
+Git remote Render can access, then either apply the `render.yaml` Blueprint
+or create a Docker-runtime Web Service pointing at this repository's
+`Dockerfile`). No public URL is stated anywhere in this project because none
+exists.

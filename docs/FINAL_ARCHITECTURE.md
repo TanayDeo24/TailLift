@@ -97,9 +97,59 @@ without altering the frozen primary metric.
 
 ## Output
 
-For a given tail query: a ranked list of up to `rerank_depth` head queries,
-each of which carries the training-period historical click/URL evidence
-associated with that head query (`headkey.txt`-style evidence, in spirit —
-not wired into a live serving layer in this project, which is offline/
-evaluation-only, per the project brief's Section 35 distinction between
-diagnosed opportunity and deployed effect).
+For a given tail query: a ranked list of head queries, each of which carries
+the training-period historical click/URL evidence associated with that head
+query (`headkey.txt`-style evidence, in spirit). This project's evaluation
+remains offline (Section 35's distinction between diagnosed opportunity and
+deployed effect still holds — see `docs/FINAL_REPORT.md` "Frozen Evaluation
+Confirmation"); a serving layer was added afterward, downstream of the
+frozen model, purely to make the already-evaluated system demonstrable — see
+below.
+
+## Serving architecture (added after the model freeze)
+
+```
+Browser (app/static/index.html, app.js)
+   |
+   | fetch("/api/map"), fetch("/api/compare")
+   v
+FastAPI (app/main.py)
+   |
+   v
+Frozen SparseQuery inference service (app/service.py::MappingService,
+loaded once at process startup, resident in memory)
+   |
+   +-- lexical score      (src/mapping.py::LexicalMapper -- Jaccard,
+   |                        preserved from the original repository)
+   +-- semantic score      (frozen bi-encoder: multi-qa-MiniLM-L6-cos-v1,
+   |                        cosine similarity vs. the 12,261-query head index)
+   +-- train-only support prior
+   |                       (src/mapping.py::SupportPriorMapper, counts
+   |                        computed only from artifacts/splits/train.json)
+   v
+fusion (frozen alpha) -> support prior (frozen beta) -> ranked head queries
+   |
+   v
+JSON response (rank, head_query, lexical_score, semantic_score,
+support_score, final_score, latency_ms)
+```
+
+This is exactly the frozen Level 5 system (`docs/BENCHMARK_REPORT.md`
+Section 11/14) wrapped in a FastAPI service — `app/service.py` imports
+`LexicalMapper`, `FusionMapper`, and `SupportPriorMapper` directly from
+`src/mapping.py` rather than reimplementing ranking logic, and reads
+`alpha`/`beta`/the embedding model name from `artifacts/frozen_config.json`
+rather than hardcoding copies. `tests/test_serving.py::test_api_matches_frozen_mapper`
+independently reconstructs the Level 5 pipeline from the frozen artifacts
+and asserts the API's output matches it exactly.
+
+The rejected cross-encoder (Level 4) is never on this default path; it is
+loaded lazily, only if `/api/compare` is called with
+`include_experimental_reranker: true`, and is clearly labeled "rejected" in
+that response. See `docs/CHANGE_REPORT.md` "Level 4 cross-encoder bug fix"
+for a real numerical bug found and fixed in this component while building
+this serving layer.
+
+No database is used — see `docs/DEPLOYMENT.md` and
+`docs/FINAL_REPORT.md` "Persistence Decision" for why this application is
+intentionally stateless.

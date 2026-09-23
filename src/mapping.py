@@ -11,6 +11,32 @@ from typing import List
 import numpy as np
 
 
+def materialize_model_(model) -> None:
+    """Force every parameter/buffer of a loaded HuggingFace/torch model to
+    own fresh, contiguous memory, in place.
+
+    Root-cause fix for a real bug found while building the serving layer:
+    on this platform (PyTorch 2.7.0 + transformers 5.17.0, Apple Silicon
+    CPU), transformers' newer fast-weight-loading path can leave parameter
+    tensors that report as contiguous and NaN-free under direct inspection,
+    but silently produce NaN when read by certain BLAS matmul kernels
+    (verified: identical values, cloned into fresh storage, compute
+    correctly; the original tensors, used in place, do not). Cloning every
+    parameter and buffer after `from_pretrained(...)` defeats whatever
+    memory-mapping/lazy-materialization artifact causes this, at negligible
+    one-time cost. See docs/CHANGE_REPORT.md "Level 4 cross-encoder bug fix"
+    for the full root-cause trace and tests/test_mapping_bugfix.py for the
+    regression test.
+    """
+    import torch
+
+    with torch.no_grad():
+        for p in model.parameters():
+            p.data = p.data.clone().contiguous()
+        for b in model.buffers():
+            b.data = b.data.clone().contiguous()
+
+
 def tokenize(q: str) -> List[str]:
     return re.findall(r"[a-z0-9]+", q.lower())
 

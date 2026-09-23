@@ -57,11 +57,11 @@
       "recall@10": 0.29581523602697446
     },
     "level4_rerank": {
-      "mrr": 0.18784396221246147,
-      "hit@1": 0.1353297519716539,
-      "recall@1": 0.1321155751133463,
-      "hit@5": 0.2567722025374328,
-      "recall@5": 0.2503795671886311,
+      "mrr": 0.1755140269999111,
+      "hit@1": 0.11652760315464625,
+      "recall@1": 0.11383158075208595,
+      "hit@5": 0.2552863184363927,
+      "recall@5": 0.2487012801463024,
       "hit@10": 0.3037489998857012,
       "recall@10": 0.29581523602697446
     },
@@ -104,11 +104,11 @@
       "recall@10": 0.295006993596913
     },
     "level4_rerank": {
-      "mrr": 0.18889938835507153,
-      "hit@1": 0.13686496371221213,
-      "recall@1": 0.1327627338342236,
-      "hit@5": 0.25704325961483515,
-      "recall@5": 0.24971052767641144,
+      "mrr": 0.17490271552932274,
+      "hit@1": 0.11583519058231899,
+      "recall@1": 0.11248665456620195,
+      "hit@5": 0.25812903594491116,
+      "recall@5": 0.25029341812729433,
       "hit@10": 0.30401737242128124,
       "recall@10": 0.295006993596913
     },
@@ -136,10 +136,11 @@
     "val_mrr_by_candidate_level": {
       "level2_semantic": 0.1894225456934577,
       "level3_fusion": 0.19329882448376431,
-      "level4_rerank": 0.18784396221246147,
+      "level4_rerank": 0.1755140269999111,
       "level5_support_prior": 0.2647722798454171
     },
-    "selected": "level5_support_prior"
+    "selected": "level5_support_prior",
+    "note": "level4_rerank value corrected post-hoc after a bug fix -- see level4_correction_note. Selection (level5_support_prior) unchanged."
   },
   "baseline_level": "level0_1_lexical",
   "final_level": "level5_support_prior",
@@ -165,5 +166,6 @@
     "abstained_test_tail_queries": 0,
     "coverage_pct": 100.0,
     "note": "Primary evaluation applies no abstention threshold (forced coverage = 100%). See docs/BENCHMARK_REPORT.md 'Confidence bucketing' for a secondary, non-primary breakdown by top-1 fusion-score confidence bucket, computed only to characterize where errors concentrate -- not used to alter the frozen primary test metric."
-  }
+  },
+  "level4_correction_note": "The level4_rerank entries above were originally computed with a cross-encoder (cross-encoder/ms-marco-MiniLM-L-6-v2) that silently emitted NaN for every input on this platform (transformers 5.17.0 fast-weight-loading + PyTorch 2.7.0 CPU matmul on Apple Silicon -- root cause and fix in src/mapping.py::materialize_model_). Because numpy.argsort on an all-NaN array preserves input order, the original level4 evaluation was silently a no-op rerank of the fusion top-10 candidates, not a genuine cross-encoder comparison. This was discovered and fixed while building the serving layer (scripts/rerun_level4_corrected.py), and these entries now reflect the corrected, functioning cross-encoder. Level 5 (support prior) remains the frozen final architecture: corrected level4 val MRR (0.1755) is still well below level5 val MRR (0.2648), so the original architecture-selection decision is unchanged. See docs/CHANGE_REPORT.md."
 }

@@ -118,5 +118,9 @@ check that the pipeline is not somehow degenerate.
   measured, aggregate, validation-confirmed finding — see
   `docs/BENCHMARK_REPORT.md` §Optimization: Level 4 (cross-encoder rerank)
   scored *lower* than Level 3 (fusion, no rerank) on both validation
-  (0.1878 vs 0.1933 MRR) and test (0.1889 vs 0.1945 MRR), which is why it was
-  not selected as the final system.
+  (0.1755 vs 0.1933 MRR) and test (0.1749 vs 0.1945 MRR), which is why it
+  was not selected as the final system. (These are the corrected numbers,
+  re-measured after a cross-encoder inference bug was found and fixed while
+  building the serving layer — see `docs/CHANGE_REPORT.md` "Level 4
+  cross-encoder bug fix." Level 5 was, and remains, the selected final
+  system either way.)

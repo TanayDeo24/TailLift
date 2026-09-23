@@ -1,0 +1,10 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Loading weights:   0%|          | 0/103 [00:00<?, ?it/s]Loading weights: 100%|██████████| 103/103 [00:00<00:00, 45015.45it/s]
+Loading weights:   0%|          | 0/105 [00:00<?, ?it/s]Loading weights: 100%|██████████| 105/105 [00:00<00:00, 24171.35it/s]
+[rerun-l4] Evaluating corrected Level 4 on FULL validation split (17,498 queries)...
+[rerun-l4] Corrected Level 4 VAL MRR = 0.1755 (Level 5 frozen VAL MRR = 0.2648)
+[rerun-l4] Corrected Level 4 does not beat frozen Level 5 on validation.
+[rerun-l4] Level 5 remains the final architecture.
+[rerun-l4] Evaluating corrected Level 4 on the held-out TEST split, exactly once...
+[rerun-l4] Corrected Level 4 TEST MRR = 0.1749 (frozen baseline test MRR = 0.1474, frozen final test MRR = 0.2661)
+[rerun-l4] Done in 411.6s. Saved artifacts/level4_corrected.json

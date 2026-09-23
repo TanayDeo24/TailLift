@@ -26,7 +26,7 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
-from mapping import LexicalMapper, FusionMapper, SupportPriorMapper, tokenize  # noqa: E402
+from mapping import LexicalMapper, FusionMapper, SupportPriorMapper, materialize_model_, tokenize  # noqa: E402
 
 N_WARMUP = 20
 N_MEASURED = 300
@@ -61,6 +61,7 @@ def main():
     t_cold_start = time.time()
     model = SentenceTransformer(cfg["embed_model"], device="cpu")
     cross_encoder = CrossEncoder(cfg["cross_encoder"], device="cpu")
+    materialize_model_(cross_encoder.model)  # see src/mapping.py docstring + docs/CHANGE_REPORT.md
     lex_mapper = LexicalMapper(head_index)
     head_embs = model.encode(head_index, batch_size=256, show_progress_bar=False,
                               convert_to_numpy=True, normalize_embeddings=True).astype(np.float32)

@@ -101,3 +101,25 @@ which runs steps 1-8 in order and exits non-zero if any step fails.
 | `artifacts/ladder_results.json` | `scripts/run_ladder.py` (Phase B) | `scripts/build_report_artifacts.py`, `docs/FINAL_REPORT.md` |
 | `artifacts/final_metrics.json` | `scripts/build_report_artifacts.py` | `docs/FINAL_REPORT.md`, `docs/PROJECT_EVIDENCE.md` |
 | `artifacts/latency_benchmark.json` | `scripts/latency_benchmark.py` | `docs/BENCHMARK_REPORT.md`, `docs/FINAL_REPORT.md` |
+| `artifacts/level4_corrected.json` | `scripts/rerun_level4_corrected.py` | `docs/CHANGE_REPORT.md`, `docs/BENCHMARK_REPORT.md` |
+| `artifacts/head_embeddings_<hash>.npy` | `app/service.py::MappingService` (cached on first load) | serving layer, avoids recomputation across restarts |
+| `artifacts/api_latency_benchmark.json` | `tests/test_api_latency.py` (run as `__main__`) | `docs/FINAL_REPORT.md` §API-Level Latency |
+
+## Local serving (added after the model freeze)
+
+```bash
+pip install -r requirements.txt -r requirements-serving.txt
+
+# start the API + demo UI
+uvicorn app.main:app --reload --port 8000
+# then open http://localhost:8000/
+
+# serving-layer tests (does not retrain/retune anything)
+python3 -m pytest tests/test_serving.py tests/test_mapping_bugfix.py -q
+
+# NEW API-level latency benchmark (separate from the frozen algorithm
+# benchmark in artifacts/latency_benchmark.json)
+python3 -m tests.test_api_latency
+```
+
+See `docs/DEPLOYMENT.md` for Docker and Render instructions.

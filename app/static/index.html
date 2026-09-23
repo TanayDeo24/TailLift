@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SparseQuery — Long-Tail Query Mapping</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <div class="subtitle">SparseQuery</div>
+      <h1>Long-Tail Query Mapping</h1>
+      <p class="blurb">
+        Maps sparse tail queries to better-supported head queries using lexical,
+        semantic, and historical support signals — a frozen, offline-evaluated
+        query-mapping system served live for demonstration.
+      </p>
+    </header>
+
+    <section class="card" aria-label="Query input">
+      <form id="query-form" autocomplete="off">
+        <div class="search-row">
+          <label for="query-input" class="visually-hidden">Enter a search query</label>
+          <input
+            id="query-input"
+            type="text"
+            placeholder="e.g. nfldraftcountdown"
+            maxlength="300"
+            aria-label="Query to map"
+            required
+          />
+          <button type="submit" id="map-btn">Map Query</button>
+        </div>
+      </form>
+      <div class="examples" id="examples" role="group" aria-label="Example queries"></div>
+      <div class="status-line" id="status-line" role="status" aria-live="polite"></div>
+    </section>
+
+    <section class="card hidden" id="results-card" aria-label="Mapping results">
+      <div class="section-title">Mapped Head Queries</div>
+      <div id="results-list"></div>
+      <div class="status-line" id="results-meta"></div>
+    </section>
+
+    <section class="card hidden" id="compare-card" aria-label="Model comparison">
+      <div class="section-title">Model Comparison — Lexical vs. Semantic vs. Final System</div>
+      <div class="compare-grid" id="compare-grid"></div>
+    </section>
+
+    <section class="card" aria-label="System information">
+      <div class="section-title">System Info <span id="offline-badge" class="badge hidden">Offline held-out evaluation</span></div>
+      <div class="info-grid" id="info-grid">
+        <div class="status-line">Loading system metadata…</div>
+      </div>
+    </section>
+
+    <section class="card" aria-label="Methodology">
+      <details class="methodology">
+        <summary>Methodology / About</summary>
+        <ul>
+          <li><strong>Query-to-head-query mapping:</strong> a tail (sparse, low-support) query is ranked
+            against a fixed index of 12,261 well-supported head queries.</li>
+          <li><strong>Lexical + semantic fusion:</strong> a Jaccard token-overlap score (preserved from the
+            original project) and a sentence-transformer cosine similarity score are min-max normalized
+            and blended.</li>
+          <li><strong>Train-only support prior:</strong> a log-scaled popularity prior, computed only from
+            the training split, nudges the ranking toward historically well-evidenced head queries.</li>
+          <li><strong>Why the cross-encoder reranker was rejected:</strong> it was evaluated as part of the
+            modernization ladder but scored lower than fusion alone on held-out validation and test data,
+            and was ~5x slower — so it is not part of the deployed system.</li>
+          <li><strong>Raw behavioral-log limitation:</strong> this project's underlying data has no raw
+            timestamps, user IDs, or impression lists, so session-level behavior (reformulation,
+            abandonment, first-click position) could not be analyzed and is not claimed anywhere.</li>
+        </ul>
+      </details>
+    </section>
+
+    <footer>
+      SparseQuery — frozen offline evaluation, served for demonstration only. No query typed here affects the reported metrics.
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

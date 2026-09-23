@@ -1,0 +1,45 @@
+# Large original-repo data/model files not needed at serving time
+text8
+*.model
+*.h5
+*.txt
+!requirements*.txt
+newMedium.txt
+train_data.txt
+test_data.txt
+head150.txt
+headkey.txt
+tailkey.txt
+finalData.txt
+out (1).txt
+*.pyc
+vidit.jain@ada.iiit.ac.in
+
+# Full artifacts dir (only a curated subset is COPY'd explicitly in the Dockerfile)
+artifacts/ladder_results.json
+artifacts/ladder_run.log
+artifacts/*_smoke.json
+artifacts/head_embeddings_*.npy
+artifacts/level4_corrected.json
+artifacts/rerun_level4.log
+
+# Dev/original scripts and docs not needed to serve the frozen model
+scripts/
+docs/
+tests/
+data_original/
+final.png
+_config.yml
+README.md
+
+# VCS / editor / local env
+.git
+.gitignore
+.dockerignore
+.DS_Store
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/

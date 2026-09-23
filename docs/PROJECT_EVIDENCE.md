@@ -69,10 +69,15 @@ artifact/command that produces it. Not resume language.
     concurrency=1 on a fixed query set. (`artifacts/latency_benchmark.json`)
 
 15. A validation-tested but rejected cross-encoder reranking stage (Level 4)
-    was both lower-quality (test MRR 0.1889 vs. 0.1945 for fusion alone) AND
-    5x slower at P95 (116.7ms vs. 21.8ms) than the selected system — a
-    disclosed negative result, not omitted. (`artifacts/ladder_results.json`,
-    `artifacts/latency_benchmark.json`)
+    was both lower-quality (corrected test MRR **0.1749** vs. 0.1945 for
+    fusion alone) AND 5x slower at P95 (116.7ms vs. 21.8ms) than the
+    selected system — a disclosed negative result, not omitted.
+    (`artifacts/level4_corrected.json`, `artifacts/latency_benchmark.json`).
+    Note: the original Level 4 evaluation had a real bug (cross-encoder
+    silently emitting NaN, making "rerank" a no-op) — found, root-caused,
+    and fixed while building the serving layer; the 0.1749 figure is the
+    corrected, verified result. See `docs/CHANGE_REPORT.md` "Level 4
+    cross-encoder bug fix."
 
 16. **25/25** correctness tests pass, covering tokenization, similarity
     math, fusion behavior at boundary weights, support-prior train-only
@@ -95,3 +100,29 @@ artifact/command that produces it. Not resume language.
     and multiple undefined-name references — it could not have executed
     successfully as committed, in Python 2 or 3.
     (`docs/QUERY_LOG_AUDIT.md`, direct inspection of `lstm_rnn.py`)
+
+20. A serving-layer FastAPI wrapper (`app/`) was added around the frozen
+    Level 5 system, reusing `src/mapping.py` directly rather than
+    reimplementing ranking logic. `tests/test_serving.py::test_api_matches_frozen_mapper`
+    independently reconstructs the Level 5 pipeline from the frozen
+    artifacts and asserts the API's output is identical.
+
+21. API-level round-trip latency (FastAPI handler + validation + JSON
+    encoding, on top of core inference): P50 **21.8ms**, P95 **29.8ms**, P99
+    **33.3ms** (300 measured requests, 15 warmup, in-process ASGI transport).
+    (`artifacts/api_latency_benchmark.json`)
+
+22. A real numerical bug was found and fixed in the (rejected, non-deployed)
+    cross-encoder component while building the serving layer: it silently
+    emitted NaN for every input on this platform. Root-caused to
+    `transformers` 5.17.0's fast-weight-loading path producing parameter
+    tensors that report clean under inspection but corrupt matmul output;
+    fixed with `src/mapping.py::materialize_model_`; regression-tested
+    (`tests/test_mapping_bugfix.py`, 5 tests). The previously-reported Level
+    4 "reranking hurts" finding was re-measured and corrected as a result —
+    see item 15 and `docs/CHANGE_REPORT.md`.
+
+23. **51/51** tests pass after the serving-layer additions (25 original +
+    21 serving + 5 bugfix regression), including a deterministic-output
+    test and a train-only support-prior leakage guard scoped to the serving
+    layer. (`python3 -m pytest tests/ -q`)

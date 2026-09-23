@@ -83,3 +83,58 @@
   trying to achieve, and reviving broken code with no evaluable target
   serves no engineering purpose per the brief's own "don't spend excessive
   time reviving obsolete infrastructure" guidance (Section 19).
+
+## Level 4 cross-encoder bug fix (engineering correction, post-freeze)
+
+**Discovered**: while building the serving layer's `/api/compare` endpoint
+(experimental cross-encoder comparison mode), `cross-encoder/ms-marco-MiniLM-L-6-v2`
+was found to emit `NaN` for every input on this platform.
+
+**Root cause**: isolated by forward-hooking every submodule of the model's
+first transformer layer and manually re-running the matmul with freshly
+cloned copies of the exact same tensors. Parameter tensors as loaded by
+`transformers` 5.17.0's newer fast-weight-loading path report as finite,
+NaN-free, and contiguous under direct inspection
+(`torch.isnan(p).any() == False`), yet a plain `torch.matmul` using those
+tensors in place produces NaN — while the identical values, cloned into
+fresh contiguous storage, compute correctly (verified down to float64
+precision, ruling out a genuine numerical-instability explanation). This
+points to a storage-level artifact (consistent with known issues in
+mmap/lazy-materialization-based fast checkpoint loading) specific to this
+`transformers`/PyTorch/platform combination, not a corrupted checkpoint or
+an algorithmic issue.
+
+**Fix**: `src/mapping.py::materialize_model_(model)` clones every parameter
+and buffer into fresh, contiguous storage once, immediately after
+`from_pretrained(...)`. Applied at every cross-encoder load site:
+`scripts/rerun_level4_corrected.py`, `scripts/latency_benchmark.py`,
+`app/service.py::MappingService._rerank_experimental`.
+
+**Regression test**: `tests/test_mapping_bugfix.py` (5 tests) — asserts
+finite outputs on sanity pairs, correct relative ranking, idempotence of the
+fix, and that parameter *values* are unchanged (only their storage).
+
+**Correction applied, following the pre-agreed decision rule**:
+1. Corrected Level 4 evaluated on the full validation split: MRR 0.1755
+   (< frozen Level 5 val MRR 0.2648) → Level 5 stays the final architecture.
+2. Corrected Level 4 then evaluated on the held-out test split exactly once
+   (not touched before the rule above was satisfied): MRR 0.1749.
+3. `artifacts/final_metrics.json`'s `ladder_val`/`ladder_test`/
+   `architecture_selection.val_mrr_by_candidate_level` entries for
+   `level4_rerank` were replaced with these corrected values (a
+   `level4_correction_note` field documents why). All other fields in that
+   file — `baseline_tail_metric`, `final_tail_metric`, `baseline_gap`,
+   `final_gap`, `paired_bootstrap`, `coverage` — are byte-identical to their
+   pre-correction values (verified by direct comparison).
+4. `artifacts/ladder_results.json` (the original run) was left numerically
+   unmodified but annotated with a `KNOWN_BUG_NOTICE_level4_rerank` field
+   pointing to the corrected artifact, preserving the audit trail without
+   letting the invalid numbers be mistaken for current results.
+5. Every document referencing the old Level 4 numbers or the "reranking
+   hurts" causal claim was updated: `docs/BENCHMARK_REPORT.md`,
+   `docs/FINAL_REPORT.md`, `docs/PROJECT_EVIDENCE.md`,
+   `docs/FAILURE_ANALYSIS.md` (this document).
+
+**What did not change**: Level 0/1, Level 2, Level 3, Level 5 (the deployed
+system), train/val/test split membership, labels, the relevance definition,
+K, head/tail definitions, and every frozen Level 5 hyperparameter.

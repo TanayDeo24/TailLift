@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: sparsequery
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter
+    healthCheckPath: /health
+    envVars:
+      - key: HF_HOME
+        value: /app/.cache/huggingface
+    # Render injects $PORT automatically; the Dockerfile's CMD already
+    # respects it (uvicorn --port ${PORT:-8000}), so it is not set here.
+    autoDeploy: true
